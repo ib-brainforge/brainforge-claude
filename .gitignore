@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Local settings (may contain sensitive data)
+settings.local.json
+
+# Logs
+*.log
+agent-activity.log
+knowledge-corrections.log
+
+# Temporary files
+planning-results/
+*.tmp
+
+# IDE
+.idea/
+.vscode/
