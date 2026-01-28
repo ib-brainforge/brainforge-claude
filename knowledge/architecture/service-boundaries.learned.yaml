@@ -1,0 +1,47 @@
+# Service Boundaries - Learned Knowledge
+# Records: New communications established, contracts created, breaking changes
+# Updated by: feature-planner, service-validator AFTER implementations
+# DO NOT record: validation findings, existing communications confirmed
+
+version: 1
+last_updated: null
+updated_by: null
+
+# New service communications established
+communications: []
+# Example:
+#   - id: "comm-20240127-001"
+#     date: "2024-01-27"
+#     from: "asset-backend"
+#     to: "notification-backend"
+#     type: "event"
+#     contract: "TenancyLeaseExpiring"
+#     purpose: "Trigger lease expiry notifications"
+#     ticket: "FEAT-123"
+
+# New shared contracts/events created
+contracts: []
+# Example:
+#   - id: "contract-20240127-001"
+#     date: "2024-01-27"
+#     name: "TenancyLeaseExpiring"
+#     location: "common-backend/src/Contracts/Events/"
+#     publisher: "asset-backend"
+#     consumers: ["notification-backend", "asset-mf"]
+#     ticket: "FEAT-123"
+
+# Breaking changes to contracts/communications
+breaking_changes: []
+# Example:
+#   - id: "break-20240127-001"
+#     date: "2024-01-27"
+#     description: "TenancyDto added required LeaseEndDate field"
+#     affected_consumers: ["asset-mf", "onboard-mf"]
+#     migration_notes: "Update all TenancyDto consumers to handle new field"
+#     ticket: "FEAT-123"
+
+stats:
+  total_communications: 0
+  total_contracts: 0
+  total_breaking_changes: 0
+  last_update: null

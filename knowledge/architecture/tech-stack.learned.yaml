@@ -1,0 +1,48 @@
+# Tech Stack - Learned Knowledge
+# Records: New dependencies added, version upgrades, deprecations
+# Updated by: infrastructure-validator, feature-planner AFTER implementations
+# DO NOT record: existing packages confirmed, routine version checks
+
+version: 1
+last_updated: null
+updated_by: null
+
+# New dependencies added (significant only)
+dependencies_added: []
+# Example:
+#   - id: "dep-20240127-001"
+#     date: "2024-01-27"
+#     package: "date-fns"
+#     version: "2.30.0"
+#     added_to: ["asset-mf", "hr-mf"]
+#     purpose: "Date formatting for lease dates"
+#     ticket: "FEAT-123"
+
+# Version upgrades performed
+version_upgrades: []
+# Example:
+#   - id: "upgrade-20240127-001"
+#     date: "2024-01-27"
+#     package: "React"
+#     from_version: "17.0.0"
+#     to_version: "18.2.0"
+#     services: ["asset-mf", "hr-mf", "common-mf"]
+#     breaking_changes: "Concurrent rendering, useId hook"
+#     ticket: "TECH-456"
+
+# Deprecations announced
+deprecations: []
+# Example:
+#   - id: "depr-20240127-001"
+#     date: "2024-01-27"
+#     package: "moment.js"
+#     replacement: "date-fns"
+#     deadline: "2024-06-01"
+#     remaining_usages: ["lms-mf", "hr-mf"]
+#     ticket: "TECH-789"
+
+stats:
+  total_dependencies_added: 0
+  total_version_upgrades: 0
+  total_deprecations: 0
+  last_update: null

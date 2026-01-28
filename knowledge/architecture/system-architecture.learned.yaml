@@ -1,0 +1,82 @@
+# System Architecture - Learned Knowledge
+# Records: Features implemented, architectural decisions made
+# Updated by: feature-planner, master-architect AFTER implementations
+# DO NOT record: validation findings, grep matches, routine observations
+
+version: 1
+last_updated: "2025-01-28T00:00:00Z"
+updated_by: "knowledge-updater"
+
+# Features implemented (significant changes only)
+features: []
+# Example:
+#   - id: "feat-20240127-001"
+#     date: "2024-01-27"
+#     description: "Added lease_end_date to tenancy"
+#     ticket: "FEAT-123"
+#     affected_services:
+#       - name: "asset-backend"
+#         changes: ["Tenancy entity", "TenancyDto", "migration"]
+#       - name: "asset-mf"
+#         changes: ["TenancyForm", "types.ts"]
+#     breaking: false
+#     notes: "Optional nullable DateTime field"
+
+# Architectural decisions made during implementations
+decisions:
+  - id: "adr-20250128-001"
+    date: "2025-01-28"
+    context: |
+      Multi-tenant isolation planning revealed critical misconceptions about the actual
+      infrastructure architecture. The system has multiple routing layers serving different
+      purposes, and their responsibilities were misunderstood during initial planning.
+    decision: |
+      Document the actual infrastructure architecture for clarity in future multi-tenant
+      implementation planning:
+
+      1. API Gateway (YARP-based at /api-gateway/src/ApiGateway/):
+         - Purpose: Backend API routing for /backend/* paths ONLY
+         - Features: API key auth, token exchange, rate limiting, YARP reverse proxy
+         - Routes API key requests to backend microservices
+         - NOT a front-of-everything gateway
+
+      2. Envoy Gateway (at /infra/namespaces/envoy-gateway/):
+         - Technology: Kubernetes Gateway API + Envoy Gateway
+         - Purpose: Ingress/TLS termination, path-based routing to K8s services
+         - Uses Kubernetes CRDs for configuration (not Lua filters directly)
+         - Routes all traffic at Kubernetes ingress level
+
+      3. Frontend Serving:
+         - Each microfrontend is a separate Nginx container
+         - Static files served directly
+         - Module Federation for shared code between microfrontends
+         - No server-side tenant resolution currently implemented
+
+      4. Current Tenant Context Flow:
+         - API key in header -> API Gateway
+         - API Gateway calls identity-management service for token exchange
+         - Context token injected into backend request headers
+         - No domain-based tenant resolution exists in current architecture
+    alternatives_considered:
+      - "Implementing tenant resolution at API Gateway layer - rejected (only handles /backend/* with API keys)"
+      - "Using simple Envoy Lua filters - rejected (requires K8s EnvoyFilter CRD, not directly in Gateway)"
+    consequences: |
+      For custom domain multi-tenant resolution, viable implementation options are:
+      - EnvoyFilter CRD: Add Kubernetes EnvoyFilter to inject tenant context at Gateway level
+      - Frontend Resolution: App shell calls /v1/tenants/resolve endpoint on initialization
+      - Nginx Level: Modify app shell's nginx.conf for tenant resolution
+
+      This clarifies what IS and ISN'T possible in the current infrastructure without
+      architectural changes.
+    tags:
+      - "multi-tenant"
+      - "infrastructure"
+      - "gateway-architecture"
+      - "tenant-isolation"
+    recorded_at: "2025-01-28T00:00:00Z"
+    recorded_by: "knowledge-updater"
+
+stats:
+  total_features: 0
+  total_decisions: 1
+  last_update: "2025-01-28T00:00:00Z"
