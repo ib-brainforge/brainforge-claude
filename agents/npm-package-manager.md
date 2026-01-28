@@ -117,8 +117,9 @@ python skills/package-release/tools/npm-package-ops.py create-pr \
   --repo-path [repo-path] \
   --package [from knowledge] \
   --version [new-version] \
-  --base main
+  --base develop
 ```
+<!-- Corrected 2026-01-28: Changed --base main to --base develop per GitFlow rules -->
 
 # Version Prefix Handling
 

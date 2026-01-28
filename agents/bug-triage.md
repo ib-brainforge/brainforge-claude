@@ -54,14 +54,21 @@ Read: knowledge/architecture/service-boundaries.md  → Service dependencies
 │  6. VALIDATE FIXES                                                           │
 │     └──► Run validators on changed code                                      │
 │                                                                              │
-│  7. COMMIT & LINK                                                            │
+│  7. BUILD VERIFICATION (HARD GATE)                                          │
+│     └──► dotnet build + dotnet test (backend)                               │
+│     └──► pnpm build + pnpm test (frontend)                                  │
+│                                                                              │
+│  8. PATTERN VALIDATION                                                       │
+│     └──► Run validators on changed code                                      │
+│                                                                              │
+│  9. COMMIT & LINK                                                            │
 │     └──► Use commit-manager with Jira linking                                │
 │                                                                              │
-│  8. CREATE PR (HARD GATE)                                                   │
+│  10. CREATE PR (HARD GATE)                                                  │
 │     └──► Spawn git-workflow-manager (ACTION=finish-feature)                 │
 │     └──► Push branch, create GitHub PR to develop                           │
 │                                                                              │
-│  9. UPDATE JIRA                                                              │
+│  11. UPDATE JIRA                                                             │
 │     └──► Add comment with fix summary + PR link, update status              │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -198,7 +205,29 @@ Gather from each bug-fixer:
 - Tests affected
 - Validation status
 
-### 7. Validate All Fixes
+### 7. Build Verification (REQUIRED GATE)
+
+**Before committing, verify all changes compile and tests pass.**
+
+**For backend repos:**
+```bash
+cd $BACKEND_REPO && dotnet build --no-restore && dotnet test --no-build
+```
+
+**For frontend repos:**
+```bash
+cd $FRONTEND_REPO && pnpm build && pnpm test --passWithNoTests
+```
+
+**If build fails:**
+1. Identify which bug-fixer's changes broke the build
+2. Fix the issue directly
+3. Re-run build
+4. After 3 failures, use `AskUserQuestion` to ask user
+
+**Build must pass before committing.**
+
+### 8. Validate All Fixes
 
 ```
 Task: spawn backend-pattern-validator (for backend changes)
@@ -208,9 +237,9 @@ Task: spawn frontend-pattern-validator (for frontend changes)
 If validation fails:
 - Report which bug fix caused the issue
 - Suggest remediation
-- Ask user how to proceed
+- Use `AskUserQuestion` to ask user how to proceed
 
-### 8. Commit Changes
+### 10. Commit Changes
 
 ```
 Task: spawn commit-manager
@@ -222,7 +251,7 @@ Prompt: |
   Include Jira link in commit message
 ```
 
-### 9. Update Jira Ticket
+### 11. Update Jira Ticket
 
 Post a **business-focused** completion comment as a simple table.
 

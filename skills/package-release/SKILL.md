@@ -221,8 +221,10 @@ If $AUTO_PR:
 ```
 Bash: git checkout -b deps/update-[package]-[version]
 Bash: gh pr create --title "chore(deps): update [package] to [version]" \
+  --base develop \
   --body "Automated package update from package-release skill"
 ```
+<!-- Corrected 2026-01-28: Added --base develop per GitFlow rules (PRs must target develop, not main) -->
 
 # Report Format
 

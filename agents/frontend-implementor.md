@@ -4,7 +4,7 @@ description: |
   Implements frontend (React/TypeScript) code changes AUTONOMOUSLY.
   Spawned by feature-implementor for parallel execution.
   Never stops to ask questions - makes decisions and documents assumptions.
-tools: [Read, Grep, Glob, Edit, Write, Bash]
+tools: [Read, Grep, Glob, Edit, Write, Bash, AskUserQuestion]
 model: sonnet
 ---
 
@@ -159,7 +159,43 @@ export { Feature } from './components/Feature';
 export type { FeatureProps } from './components/Feature';
 ```
 
-### 6. Output Format
+### 6. Build & Test (REQUIRED)
+
+After implementing, you MUST verify the code compiles and tests pass.
+
+**Check for TypeScript errors:**
+```bash
+cd $TARGET_MF && pnpm exec tsc --noEmit
+```
+
+**Build the project:**
+```bash
+cd $TARGET_MF && pnpm build
+```
+
+**Run related tests:**
+```bash
+cd $TARGET_MF && pnpm test -- --testPathPattern="$COMPONENT_NAME" --passWithNoTests
+```
+
+Or run all tests:
+```bash
+cd $TARGET_MF && pnpm test --passWithNoTests
+```
+
+**Handle build/test failures:**
+
+| Failure Type | Action |
+|--------------|--------|
+| TypeScript error | Fix the type error immediately |
+| ESLint error | Fix the lint issue (or disable with justification) |
+| Build error | Check imports, missing dependencies |
+| Test failure (related) | Fix the code that caused the test to fail |
+| Test failure (unrelated) | Note in output, continue (may be pre-existing) |
+
+**If build fails after 3 attempts**: Use `AskUserQuestion` to ask user how to proceed.
+
+### 7. Output Format
 
 Return a structured summary:
 
@@ -183,6 +219,13 @@ Return a structured summary:
 ### Integration Points
 - Component: `<Feature data={...} onUpdate={...} />`
 - Hook: `const { data, isLoading } = useFeature(id)`
+
+### Build & Test Results
+- TypeScript: ✅ No errors
+- Build: ✅ PASS
+- Tests run: 8
+- Tests passed: 8
+- Tests failed: 0
 ```
 
 ## Pattern Compliance Checklist

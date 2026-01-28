@@ -602,7 +602,7 @@ def main():
     pr_parser.add_argument("--repo-path", "-r", required=True)
     pr_parser.add_argument("--package", "-p", required=True)
     pr_parser.add_argument("--version", "-v", required=True)
-    pr_parser.add_argument("--base", default="main")
+    pr_parser.add_argument("--base", default="develop")  # GitFlow: PRs target develop, not main
     pr_parser.add_argument("--output", "-o")
 
     args = parser.parse_args()

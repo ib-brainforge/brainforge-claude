@@ -4,7 +4,7 @@ description: |
   Orchestrates the complete bug fix workflow for direct bug descriptions.
   Spawns bug-fixer, validators, and commit-manager in sequence.
   This is the entry point for "/fix-bug" command.
-tools: [Read, Grep, Glob, Bash, Task]
+tools: [Read, Grep, Glob, Bash, Task, AskUserQuestion]
 model: sonnet
 ---
 
@@ -57,21 +57,26 @@ $REPOS_ROOT (path): Root directory containing repositories
 │     └──► Capture: files_modified, status, business summary                   │
 │     └──► If failed → STOP and report                                         │
 │                                                                              │
-│  STEP 2: VALIDATE THE FIX                                                    │
+│  STEP 2: BUILD VERIFICATION (HARD GATE)                                     │
+│     └──► dotnet build + dotnet test (backend)                               │
+│     └──► pnpm build + pnpm test (frontend)                                  │
+│     └──► Must pass before proceeding                                        │
+│                                                                              │
+│  STEP 3: VALIDATE THE FIX                                                    │
 │     └──► Determine validator type from file extensions                       │
 │     └──► Spawn backend-pattern-validator (for .cs files)                     │
 │     └──► Spawn frontend-pattern-validator (for .tsx/.ts files)               │
 │     └──► If validation fails → STOP and report                               │
 │                                                                              │
-│  STEP 3: COMMIT CHANGES                                                      │
+│  STEP 4: COMMIT CHANGES                                                      │
 │     └──► Spawn commit-manager                                                │
 │     └──► Include business description in commit                              │
 │                                                                              │
-│  STEP 4: CREATE PR (HARD GATE)                                              │
+│  STEP 5: CREATE PR (HARD GATE)                                              │
 │     └──► Spawn git-workflow-manager (ACTION=finish-feature)                 │
 │     └──► Push fix branch, create GitHub PR to develop                       │
 │                                                                              │
-│  STEP 5: REPORT                                                              │
+│  STEP 6: REPORT                                                              │
 │     └──► Generate business-focused summary table with PR link               │
 │     └──► Return complete report                                              │
 │                                                                              │
@@ -131,10 +136,36 @@ Prompt: |
 - If `$FIX_STATUS` = "failed" → STOP, return failure report
 - If `$FIX_STATUS` = "needs_review" → STOP, return review request
 
-### Step 2: Spawn Validator(s)
+### Step 2: Build Verification (REQUIRED GATE)
 
 ```
-[bug-fix-orchestrator] Step 2/4: Validating fix...
+[bug-fix-orchestrator] Step 2/6: Verifying builds pass...
+```
+
+**Before pattern validation, verify all changes compile and tests pass.**
+
+**For backend repos:**
+```bash
+cd $BACKEND_REPO && dotnet build --no-restore && dotnet test --no-build
+```
+
+**For frontend repos:**
+```bash
+cd $FRONTEND_REPO && pnpm build && pnpm test --passWithNoTests
+```
+
+**If build fails:**
+1. Identify the issue
+2. Fix it directly
+3. Re-run build
+4. After 3 failures, use `AskUserQuestion` to ask user how to proceed
+
+**Build must pass before proceeding to validation.**
+
+### Step 3: Spawn Validator(s)
+
+```
+[bug-fix-orchestrator] Step 3/6: Validating fix patterns...
 ```
 
 **Determine validator type:**
@@ -179,10 +210,10 @@ Prompt: |
 - If `$VALIDATION_STATUS` = "PASS" or "WARN" → Continue to Step 3
 - If `$VALIDATION_STATUS` = "FAIL" → STOP, return validation failure
 
-### Step 3: Spawn commit-manager
+### Step 4: Spawn commit-manager
 
 ```
-[bug-fix-orchestrator] Step 3/4: Committing changes...
+[bug-fix-orchestrator] Step 4/6: Committing changes...
 
 Task: spawn commit-manager
 Prompt: |
@@ -200,10 +231,10 @@ Prompt: |
 - `$COMMIT_SHA` = commit hash
 - `$COMMIT_MESSAGE` = full commit message
 
-### Step 4: Create PR (HARD GATE)
+### Step 5: Create PR (HARD GATE)
 
 ```
-[bug-fix-orchestrator] Step 4/5: Creating GitHub PR...
+[bug-fix-orchestrator] Step 5/6: Creating GitHub PR...
 
 Task: spawn git-workflow-manager
 Prompt: |
@@ -227,10 +258,10 @@ Prompt: |
 - `$PR_URL` = GitHub PR URL
 - `$PR_NUMBER` = PR number
 
-### Step 5: Generate Report
+### Step 6: Generate Report
 
 ```
-[bug-fix-orchestrator] Step 5/5: Complete ✓
+[bug-fix-orchestrator] Step 6/6: Complete ✓
 ```
 
 Return final report to user.
@@ -244,6 +275,7 @@ Return final report to user.
   "bug_description": "$BUG_DESCRIPTION",
   "steps_completed": {
     "bug_fixer": "PASS",
+    "build": "PASS",
     "validator": "PASS|WARN",
     "commit_manager": "PASS"
   },
@@ -286,6 +318,7 @@ After completion, display to user:
 **Branch:** fix/[description]
 **Files changed:** $FILES_MODIFIED
 **Commit:** $COMMIT_SHA
+**Build:** ✅ PASS (tests: 12/12)
 **Validation:** $VALIDATION_STATUS
 
 ### Pull Request

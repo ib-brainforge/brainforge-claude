@@ -162,23 +162,44 @@ Edit: [file-path]
 - Add comments explaining the fix if not obvious
 - Follow patterns from knowledge files
 
-### 6. Verify the Fix
+### 6. Build & Test (REQUIRED)
 
-#### Run Related Tests
-```
-Bash: cd $SERVICE && dotnet test --filter "Login"
-```
-or
-```
-Bash: cd $SERVICE && npm test -- --grep "login"
+**You MUST build and test after every fix. This is not optional.**
+
+#### For Backend (.NET) fixes:
+```bash
+# Build to verify compilation
+cd $SERVICE && dotnet build --no-restore
+
+# Run related tests
+cd $SERVICE && dotnet test --no-build --filter "FullyQualifiedName~$BUG_AREA"
+
+# Or run all tests
+cd $SERVICE && dotnet test --no-build
 ```
 
-#### Check for Obvious Regressions
-- Did any tests fail that passed before?
-- Is the code still syntactically valid?
+#### For Frontend (React/TS) fixes:
+```bash
+# Check TypeScript
+cd $SERVICE && pnpm exec tsc --noEmit
 
-#### If No Tests Exist
-Note in report that manual testing is needed.
+# Build to verify
+cd $SERVICE && pnpm build
+
+# Run related tests
+cd $SERVICE && pnpm test -- --testPathPattern="$COMPONENT_NAME" --passWithNoTests
+```
+
+#### Handle failures:
+
+| Failure Type | Action |
+|--------------|--------|
+| Build fails | Fix the error, rebuild |
+| Test fails (related to fix) | Your fix is wrong - revise it |
+| Test fails (unrelated) | Note in output, continue |
+| No tests exist | Note "manual testing required" in output |
+
+**If build/tests fail after 3 fix attempts**: Use `AskUserQuestion` to ask user how to proceed.
 
 ### 7. Report Results
 
@@ -202,6 +223,10 @@ Return structured result with **business-focused descriptions** for Jira:
     "resolution": "Login now accepts all valid password characters"
   },
   "files_modified": ["src/auth/login.cs"],
+  "build": {
+    "status": "PASS",
+    "duration": "2.3s"
+  },
   "tests": {
     "ran": true,
     "passed": 5,

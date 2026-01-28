@@ -4,7 +4,7 @@ description: |
   Implements backend (.NET/C#) code changes AUTONOMOUSLY.
   Spawned by feature-implementor for parallel execution.
   Never stops to ask questions - makes decisions and documents assumptions.
-tools: [Read, Grep, Glob, Edit, Write, Bash]
+tools: [Read, Grep, Glob, Edit, Write, Bash, AskUserQuestion]
 model: sonnet
 ---
 
@@ -125,7 +125,37 @@ When you encounter a decision point:
 | Error handling | Throw domain exceptions | `// REVIEW: Using DomainException pattern` |
 | Nullable types | Enable nullable | `// REVIEW: Using nullable reference types` |
 
-### 5. Output Format
+### 5. Build & Test (REQUIRED)
+
+After implementing, you MUST verify the code compiles and tests pass.
+
+**Build the project:**
+```bash
+cd $TARGET_SERVICE && dotnet build --no-restore
+```
+
+**Run related tests:**
+```bash
+cd $TARGET_SERVICE && dotnet test --no-build --filter "FullyQualifiedName~$FEATURE_AREA"
+```
+
+Or run all tests if unsure which are affected:
+```bash
+cd $TARGET_SERVICE && dotnet test --no-build
+```
+
+**Handle build/test failures:**
+
+| Failure Type | Action |
+|--------------|--------|
+| Compilation error | Fix the error immediately, rebuild |
+| Missing reference | Add using statement or package reference |
+| Test failure (related) | Fix the code that caused the test to fail |
+| Test failure (unrelated) | Note in output, continue (may be pre-existing) |
+
+**If build fails after 3 attempts**: Use `AskUserQuestion` to ask user how to proceed.
+
+### 6. Output Format
 
 Return a structured summary:
 
@@ -148,6 +178,12 @@ Return a structured summary:
 ### Integration Points
 - New endpoint: POST /api/features
 - Requires: FeatureRepository injection
+
+### Build & Test Results
+- Build: ✅ PASS
+- Tests run: 12
+- Tests passed: 12
+- Tests failed: 0
 ```
 
 ## Pattern Compliance Checklist

@@ -55,20 +55,24 @@ Automatic via Claude Code hooks - no manual logging required.
 │              └─────────────────┴─────────────────┘                           │
 │                        WAIT FOR ALL                                          │
 │                                                                              │
-│  STEP 3: INTEGRATION & VALIDATION                                           │
-│     └──► Merge results, run validators IN PARALLEL                          │
+│  STEP 3: BUILD VERIFICATION (HARD GATE)                                     │
+│     └──► dotnet build + dotnet test (backend)                               │
+│     └──► pnpm build + pnpm test (frontend)                                  │
 │                                                                              │
-│  STEP 4: DEPENDENCY UPDATES                                                  │
+│  STEP 4: PATTERN VALIDATION                                                  │
+│     └──► Run validators IN PARALLEL                                         │
+│                                                                              │
+│  STEP 5: DEPENDENCY UPDATES                                                  │
 │     └──► Update all consumers (if core changed)                             │
 │                                                                              │
-│  STEP 5: COMMIT ALL                                                          │
+│  STEP 6: COMMIT ALL                                                          │
 │     └──► commit-manager for all repos                                       │
 │                                                                              │
-│  STEP 6: CREATE PR (HARD GATE)                                              │
+│  STEP 7: CREATE PR (HARD GATE)                                              │
 │     └──► git-workflow-manager → push & create PR                            │
 │                                                                              │
-│  STEP 7: REPORT                                                              │
-│     └──► Summary with PR links                                              │
+│  STEP 8: REPORT                                                              │
+│     └──► Summary with PR links + build results                              │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -175,10 +179,36 @@ Prompt: |
   $REPOS_ROOT = $REPOS_ROOT
 ```
 
-### Step 3: Integration & Validation
+### Step 3: Build Verification (REQUIRED GATE)
 
 ```
-[feature-implementor] Step 3/7: Validating all changes...
+[feature-implementor] Step 3/7: Verifying builds pass...
+```
+
+**Each implementor should have already run build/tests, but verify here:**
+
+**For backend repos:**
+```bash
+cd $BACKEND_REPO && dotnet build --no-restore && dotnet test --no-build
+```
+
+**For frontend repos:**
+```bash
+cd $FRONTEND_REPO && pnpm build && pnpm test --passWithNoTests
+```
+
+**If build fails:**
+1. Identify which implementor's changes broke the build
+2. Fix the issue directly
+3. Re-run build
+4. After 3 failures, use `AskUserQuestion` to ask user
+
+**Build must pass before proceeding to validation.**
+
+### Step 4: Pattern Validation
+
+```
+[feature-implementor] Step 4/7: Validating patterns...
 ```
 
 **Spawn validators IN PARALLEL for all changed code:**
@@ -197,10 +227,10 @@ Prompt: |
 
 **If validation fails**: Fix issues directly, re-validate. Do NOT stop to ask.
 
-### Step 4: Dependency Updates
+### Step 5: Dependency Updates
 
 ```
-[feature-implementor] Step 4/7: Updating dependencies...
+[feature-implementor] Step 5/8: Updating dependencies...
 ```
 
 If core package was modified:
@@ -208,10 +238,10 @@ If core package was modified:
 - Update ALL consumer projects
 - Run `npm install --package-lock-only` to verify
 
-### Step 5: Commit All
+### Step 6: Commit All
 
 ```
-[feature-implementor] Step 5/7: Committing...
+[feature-implementor] Step 6/8: Committing...
 
 Task: spawn commit-manager
 Prompt: |
@@ -222,10 +252,10 @@ Prompt: |
   Repos: [list all with changes]
 ```
 
-### Step 6: Create PR (HARD GATE)
+### Step 7: Create PR (HARD GATE)
 
 ```
-[feature-implementor] Step 6/7: Creating PR...
+[feature-implementor] Step 7/8: Creating PR...
 
 Task: spawn git-workflow-manager
 Prompt: |
@@ -234,7 +264,7 @@ Prompt: |
   $PR_TITLE = "feat($TARGET_SERVICE): $FEATURE_DESCRIPTION"
 ```
 
-### Step 7: Report
+### Step 8: Report
 
 ```
 [feature-implementor] Complete ✓
@@ -254,7 +284,13 @@ Prompt: |
 ### Changes Made
 [list per repo]
 
-### Validation
+### Build & Test
+| Repo | Build | Tests | Duration |
+|------|-------|-------|----------|
+| service-backend | ✅ PASS | 24/24 passed | 8.2s |
+| service-mf | ✅ PASS | 18/18 passed | 4.1s |
+
+### Pattern Validation
 - Backend: PASS
 - Frontend: PASS
 
