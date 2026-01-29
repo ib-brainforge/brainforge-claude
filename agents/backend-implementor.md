@@ -155,7 +155,23 @@ cd $TARGET_SERVICE && dotnet test --no-build
 
 **If build fails after 3 attempts**: Use `AskUserQuestion` to ask user how to proceed.
 
-### 6. Output Format
+### 6. Create PR When New API Endpoints Added
+
+When the implementation includes new API endpoints that frontend will consume, you must create a PR immediately after build passes. This triggers the CI/CD pipeline to regenerate the API client package, which frontend needs before it can implement its portion.
+
+**Detection:** If you created or modified any Controller endpoints, this step applies.
+
+**Actions:**
+
+First, commit the changes with a descriptive message indicating new API endpoints were added.
+
+Then create a PR to develop branch using the gh CLI tool. The PR title should indicate the feature and that it includes new API endpoints.
+
+After PR creation, output the PR number and URL. Also note that CI/CD will regenerate the backend client package once the PR is merged.
+
+**Why this matters:** Frontend cannot proceed until the generated client is available. Creating the PR immediately allows the team to merge and trigger client regeneration without delay.
+
+### 7. Output Format
 
 Return a structured summary:
 
@@ -175,15 +191,25 @@ Return a structured summary:
 - Validation in command handler
 - Returning DTO, not domain entity
 
-### Integration Points
-- New endpoint: POST /api/features
-- Requires: FeatureRepository injection
+### New API Endpoints
+- POST /api/features - Create new feature
+- GET /api/features/{id} - Get feature by ID
 
 ### Build & Test Results
 - Build: ✅ PASS
 - Tests run: 12
 - Tests passed: 12
 - Tests failed: 0
+
+### Pull Request (if new endpoints added)
+- PR #123: feat(feature): add feature API endpoints
+- URL: https://github.com/org/repo/pull/123
+- Status: Ready for review
+- Note: Once merged, CI/CD will regenerate @brainforgeau/backend-client
+
+### Next Steps for Frontend
+Frontend can proceed once PR is merged and client package is published.
+Check npm registry for new package version before starting frontend work.
 ```
 
 ## Pattern Compliance Checklist

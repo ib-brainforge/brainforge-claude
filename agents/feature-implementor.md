@@ -45,22 +45,35 @@ Automatic via Claude Code hooks - no manual logging required.
 │  STEP 1: PLAN & SPLIT                                                        │
 │     └──► feature-planner → analyze and identify work streams                │
 │     └──► Determine: What can run in PARALLEL?                               │
+│     └──► DETECT: New API endpoints? If yes → sequential flow required       │
 │                                                                              │
-│  STEP 2: PARALLEL IMPLEMENTATION  ←── THE KEY CHANGE                        │
+│  STEP 2: IMPLEMENTATION                                                      │
+│                                                                              │
+│     IF new API endpoints needed:                                             │
+│     ┌─────────────────────────────────────────────────────────────────────┐ │
+│     │ SEQUENTIAL FLOW (API endpoints require client regeneration)          │ │
+│     │                                                                       │ │
+│     │  2a. backend-implementor → implement endpoints                        │ │
+│     │  2b. backend-implementor → create PR automatically                    │ │
+│     │  2c. WAIT for PR merge + client package regeneration                  │ │
+│     │  2d. frontend-implementor → use generated client                      │ │
+│     └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│     IF no new API endpoints (or backend-only/frontend-only):                │
 │     ┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐│
 │     │ backend-impl    │ frontend-impl   │ core-impl       │ infra-impl      ││
 │     │ (if .cs work)   │ (if .tsx work)  │ (if pkg work)   │ (if k8s work)   ││
 │     └────────┬────────┴────────┬────────┴────────┬────────┴────────┬────────┘│
-│              │                 │                 │                           │
-│              └─────────────────┴─────────────────┘                           │
-│                        WAIT FOR ALL                                          │
+│              └─────────────────┴─────────────────┘ PARALLEL                  │
 │                                                                              │
 │  STEP 3: BUILD VERIFICATION (HARD GATE)                                     │
 │     └──► dotnet build + dotnet test (backend)                               │
 │     └──► pnpm build + pnpm test (frontend)                                  │
 │                                                                              │
-│  STEP 4: PATTERN VALIDATION                                                  │
-│     └──► Run validators IN PARALLEL                                         │
+│  STEP 4: PATTERN VALIDATION (HARD GATE) ←── CANNOT BE SKIPPED               │
+│     └──► backend-pattern-validator (if backend changes)                     │
+│     └──► frontend-pattern-validator (if frontend changes)                   │
+│     └──► MUST PASS before proceeding - fix issues and re-validate           │
 │                                                                              │
 │  STEP 5: DEPENDENCY UPDATES                                                  │
 │     └──► Update all consumers (if core changed)                             │
@@ -72,7 +85,7 @@ Automatic via Claude Code hooks - no manual logging required.
 │     └──► git-workflow-manager → push & create PR                            │
 │                                                                              │
 │  STEP 8: REPORT                                                              │
-│     └──► Summary with PR links + build results                              │
+│     └──► Summary with PR links + build results + validation results         │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -126,22 +139,27 @@ Prompt: |
 - Infrastructure work (Kubernetes manifests, GitOps configs, IaC)
 - Dependencies between streams
 
-### Step 2: Parallel Implementation (THE KEY STEP)
+### Step 2: Implementation (Parallel or Sequential)
 
 ```
-[feature-implementor] Step 2/7: Spawning parallel implementors...
+[feature-implementor] Step 2/7: Starting implementation...
 ```
 
-**Analyze work streams from plan:**
+**First, determine if new API endpoints are involved:**
 
-```
-IF backend_work AND frontend_work are INDEPENDENT:
-    Spawn BOTH in parallel (single Task block with multiple invocations)
-ELSE IF backend_work THEN frontend_work:
-    Spawn backend first, wait, then spawn frontend
-ELSE:
-    Spawn single appropriate implementor
-```
+Check if the plan includes new backend API endpoints that frontend will consume. If yes, the work streams cannot run in parallel because frontend needs the generated API client.
+
+**For features WITH new API endpoints (sequential flow):**
+
+1. Spawn backend-implementor first
+2. Backend-implementor will create PR automatically after implementation
+3. Wait for backend PR to be merged and client package regenerated
+4. Only then spawn frontend-implementor
+5. Frontend uses the generated client from the package
+
+**For features WITHOUT new API endpoints (parallel flow):**
+
+Backend and frontend work streams are independent and can run simultaneously. Spawn both implementors in a single Task block for parallel execution.
 
 **PARALLEL SPAWN EXAMPLE:**
 ```
@@ -221,27 +239,31 @@ cd $FRONTEND_REPO && pnpm build && pnpm test --passWithNoTests
 
 **Build must pass before proceeding to validation.**
 
-### Step 4: Pattern Validation
+### Step 4: Pattern Validation (HARD GATE)
 
 ```
 [feature-implementor] Step 4/7: Validating patterns...
 ```
 
-**Spawn validators IN PARALLEL for all changed code:**
+**This is a HARD GATE. Validation MUST pass before proceeding to commit.**
 
-```
-Task: spawn backend-pattern-validator
-Prompt: |
-  Validate all .cs changes from this feature.
-  $REPOS_ROOT = $REPOS_ROOT
+Spawn validators in parallel for all changed code. The backend-pattern-validator checks all C# changes and the frontend-pattern-validator checks all TypeScript/React changes.
 
-Task: spawn frontend-pattern-validator
-Prompt: |
-  Validate all .tsx/.ts changes from this feature.
-  $REPOS_ROOT = $REPOS_ROOT
-```
+**Validation is NOT optional.** Every implementation must be validated. Do not skip this step for any reason.
 
-**If validation fails**: Fix issues directly, re-validate. Do NOT stop to ask.
+**If validation returns FAIL status:**
+
+1. Read the validation report carefully to understand all issues
+2. For CRITICAL issues (like temporary API implementations), these are blockers that must be resolved
+3. Fix all issues directly in the code
+4. Re-run validation to confirm fixes
+5. Do not proceed to commit until validation passes
+
+**For API client validation failures specifically:**
+
+If frontend-pattern-validator reports temporary API implementations, this means the backend client package is not yet available. You must either wait for the backend PR to be merged and client regenerated, or split the work so backend PR goes first.
+
+**After 3 validation failures:** Use AskUserQuestion to ask user how to proceed, presenting the specific validation errors that cannot be resolved.
 
 ### Step 5: Dependency Updates
 
