@@ -373,6 +373,34 @@ Read: knowledge/packages/package-config.md    → Package registries and depende
 5. After merge, CI/CD publishes stable version
 6. Update consumers to stable version
 
+## API Client Synchronization (CRITICAL)
+
+When implementing features that require new API endpoints, the frontend cannot use temporary or locally-defined API classes. The frontend must always use the generated OpenAPI client packages.
+
+**Detection During Planning:**
+
+If the feature plan includes both new backend API endpoints and frontend code that calls those endpoints, the work streams are not independent. The backend work must complete first, and the API client package must be regenerated before frontend work can proceed.
+
+**Required Sequence for New API Endpoints:**
+
+The backend team implements the endpoint first. After the backend PR is merged to develop, CI/CD automatically regenerates the brainforgeau backend-client npm package. The frontend team must wait for the new package version to be published to the npm registry. Then the frontend can update its package.json with the new client version and import the generated API class. Only then should the frontend PR be created.
+
+**Forbidden Practices:**
+
+Do not create temporary local API classes to work around missing generated clients. Do not add comments indicating that code is temporary pending client regeneration. Do not copy DTO interfaces locally that should come from the generated client package.
+
+**Validation Enforcement:**
+
+The frontend-pattern-validator will fail with critical severity if temporary API classes are detected. This is a blocking issue that prevents the PR from being considered ready to merge. The pattern validator provides guidance on the proper resolution path.
+
+**When Detected at Planning Stage:**
+
+Split the feature into two sequential work streams. The first stream covers backend work only. The second stream covers frontend work and depends on the first stream plus client regeneration. Create the backend PR first. After merge, wait for and verify the client package update. Then proceed with the frontend PR.
+
+**When Detected at Validation Stage:**
+
+Report this as a blocker. Coordinate with the backend team to ensure the endpoint PR is merged. Wait for the client package to be regenerated and published. Update the frontend to use the generated client instead of the temporary implementation. Then re-run validation to confirm the issue is resolved.
+
 ## Related Agents
 
 - `feature-planner` - Analyzes and splits work

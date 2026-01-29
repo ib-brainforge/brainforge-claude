@@ -549,6 +549,35 @@ navbar-mf exposes: root export (.) and ./Navbar
 | Direct fetch to external URLs | error | Use authorizedAxios from @brainforgeau/security |
 | Raw axios import without security package | error | Use authorizedAxios |
 | Hardcoded API URLs in code | warning | Use environment variables |
+| Temporary/local API client classes | error | Must use generated clients from @brainforgeau/*-backend-client packages |
+| Custom API classes duplicating backend endpoints | error | Wait for backend PR merge, client regeneration, then use generated client |
+| REVIEW/TODO comments for temporary API implementations | error | Blocker - must resolve before merge |
+
+### Generated API Client Workflow (CRITICAL)
+
+All API calls must use the generated OpenAPI clients from brainforgeau backend-client packages. Creating temporary local API classes is not acceptable and will be flagged as a blocking issue.
+
+**Required Workflow for New API Endpoints:**
+
+When implementing a feature that requires new backend API endpoints:
+
+1. Backend team implements the endpoint and merges PR to develop
+2. CI/CD automatically regenerates the brainforgeau backend-client npm package from the OpenAPI specification
+3. Wait for the new package version to be published to npm registry
+4. Update the frontend package.json to reference the new client version
+5. Import and use the generated API class from the package
+
+**What to Look For:**
+
+The validator should detect and flag any locally-defined API classes that should come from the generated client. This includes classes that mimic the generated client pattern, comments indicating temporary implementations, comments about waiting for client regeneration, and locally-defined DTO interfaces that mirror backend types.
+
+**Why This Matters:**
+
+Generated clients provide type safety that matches the actual backend contract. Manual API classes can drift from the real backend, leading to runtime errors. Temporary code often becomes permanent if not blocked at review time. The pattern validator cannot verify correctness of custom implementations.
+
+**Validator Behavior:**
+
+When temporary API implementations are detected, the validator must report this as a critical severity issue that blocks the PR. The guidance should direct the developer to either wait for the backend client package update or ensure the backend PR is merged first before proceeding with frontend work.
 
 ### State Anti-Patterns
 
