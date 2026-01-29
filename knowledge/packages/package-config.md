@@ -312,9 +312,26 @@ Services.Core.Eventing.Redis references:
 ## Dependency Update Workflow
 
 1. Core package changes committed to dotnet-core or mf-packages
-2. CI/CD pipeline builds and publishes new version
+2. CI/CD pipeline builds and publishes new version (see cicd/package-publishing.md for details)
 3. package-release skill detects new version
 4. Scans dependent services/apps for outdated references
 5. Updates package references in package.json or .csproj files
 6. Creates PRs with updated versions
 7. CI runs tests on PRs
+
+**Current Limitation:** Packages are only published from `main` and `develop` branches. PR-based package versions are not yet supported, meaning cross-repo changes must be merged sequentially.
+
+See `knowledge/cicd/package-publishing.md` for detailed CI/CD documentation including:
+- Version strategy (main vs prerelease)
+- Build triggers and workflow patterns
+- API client generation process
+- Proposed PR-based package versions enhancement
+
+---
+
+## CI/CD References
+
+- Package publishing workflows: `knowledge/cicd/package-publishing.md`
+- NPM workflow examples: `mf-packages/.github/workflows/`
+- NuGet workflow examples: `dotnet-core/.github/workflows/`
+- Client generation: `[backend]/.github/workflows/generate-client.yml`

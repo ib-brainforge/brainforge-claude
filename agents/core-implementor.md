@@ -45,7 +45,24 @@ Automatic via Claude Code hooks - no manual logging required.
 Read: knowledge/packages/npm-packages.md      → NPM package structure & consumers
 Read: knowledge/packages/nuget-packages.md    → NuGet package structure & consumers
 Read: knowledge/architecture/service-boundaries.md → What belongs in core
+Read: knowledge/cicd/package-publishing.md    → CI/CD workflows, PR package versions
 ```
+
+## CI/CD Awareness
+
+**CRITICAL**: Core packages must be published by CI/CD before consumers can use them.
+
+**PR-Based Package Versions:**
+- When you create a PR for a core package, CI/CD automatically publishes a PR version
+- Format: `0.1.X-pr.[PR_NUMBER].[SHA]` (e.g., `0.1.123-pr.42.abc1234`)
+- NPM: Published with dist-tag `pr-[number]`
+- NuGet: Published as prerelease
+
+**After Implementation:**
+1. Create PR for core package changes
+2. CI/CD publishes PR version (check PR comments for version)
+3. Consumers can test with: `pnpm add @bf/package@0.1.X-pr.42.abc1234`
+4. After merge to develop/main, stable version is published
 
 ## Input
 

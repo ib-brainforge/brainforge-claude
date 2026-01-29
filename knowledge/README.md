@@ -20,6 +20,8 @@ knowledge/
 │   ├── core-packages.md             # Shared package APIs
 │   ├── package-config.md            # NPM/NuGet settings
 │   └── repo-config.md               # Repo-specific settings
+├── cicd/                            # CI/CD pipelines
+│   └── package-publishing.md        # Package build, version, publish workflows
 └── commit-conventions.md            # Commit message format
 ```
 
@@ -56,6 +58,13 @@ Package management configuration.
 | `package-config.md` | npm/nuget-package-manager | Registry URLs, package names |
 | `repo-config.md` | commit-manager | Branch rules, commit prefixes |
 
+### cicd/
+CI/CD pipeline documentation.
+
+| File | Used By | Contains |
+|------|---------|----------|
+| `package-publishing.md` | package-release, feature-implementor | Build triggers, versioning, API client generation |
+
 ## How Agents Load Knowledge
 
 Each agent loads **only the file(s) it needs**:
@@ -69,6 +78,9 @@ validation-orchestrator    →  validation/validation-config.md
 master-architect           →  architecture/system-architecture.md
 commit-manager             →  commit-conventions.md
                               packages/repo-config.md
+package-release            →  cicd/package-publishing.md
+                              packages/package-config.md
+feature-implementor        →  cicd/package-publishing.md (for cross-repo awareness)
 ```
 
 ## Using in a New Project

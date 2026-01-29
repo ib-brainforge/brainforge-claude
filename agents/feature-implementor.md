@@ -332,6 +332,31 @@ When you make an assumption, add a REVIEW comment:
 
 These get listed in the final report for user review AFTER implementation is complete.
 
+## Knowledge to Load
+
+```
+Read: knowledge/cicd/package-publishing.md    → CI/CD workflows, PR package versions
+Read: knowledge/packages/package-config.md    → Package registries and dependencies
+```
+
+## CI/CD Awareness
+
+**CRITICAL**: Core packages (mf-packages, dotnet-core) must be built by CI/CD to publish.
+
+**Cross-Repo Development:**
+- If modifying a core package, the package must be published before consumers can use it
+- PR-based packages are available: `0.1.X-pr.123.abc1234`
+- After creating PR for core package, wait for CI/CD to publish PR version
+- Consumers can reference PR versions for testing: `pnpm add @bf/security@0.1.X-pr.123.abc1234`
+
+**Workflow for Core Package Changes:**
+1. Make changes to core package
+2. Create PR → CI/CD publishes PR version automatically
+3. PR comment shows: "Install with: `pnpm add @bf/package@0.1.X-pr.123.abc1234`"
+4. Update consumers to use PR version for testing
+5. After merge, CI/CD publishes stable version
+6. Update consumers to stable version
+
 ## Related Agents
 
 - `feature-planner` - Analyzes and splits work

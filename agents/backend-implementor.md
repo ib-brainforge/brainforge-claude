@@ -215,6 +215,19 @@ Before completing, verify:
 - Deviate from CQRS pattern
 - Expose entities directly in API
 
+## CI/CD Awareness
+
+**API Client Generation:**
+- Backend services generate NPM clients through CI/CD when OpenAPI spec changes
+- Clients are published to GitHub Packages (e.g., `@bf/identity-management-client`)
+- Frontend apps consume these generated clients
+- After modifying API endpoints, CI/CD will regenerate and publish the client
+
+**If modifying NuGet core packages (dotnet-core):**
+- Changes require CI/CD to publish before consumers can use them
+- PR-based versions available: `0.1.X-pr.42.abc1234`
+- See `knowledge/cicd/package-publishing.md` for details
+
 ## Related Agents
 
 - `feature-implementor` - Parent orchestrator

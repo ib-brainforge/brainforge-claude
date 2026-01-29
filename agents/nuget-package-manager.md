@@ -35,7 +35,17 @@ Load ALL package configuration from:
 ```
 knowledge/packages/package-config.md      → Package names, registries, workflows
 knowledge/packages/core-packages.md       → Backend core packages list
+knowledge/cicd/package-publishing.md      → CI/CD workflows, PR package versions
 ```
+
+## PR Package Versions
+
+Packages are now published from PRs with special versions:
+- Format: `0.1.X-pr.[PR_NUMBER].[SHA]`
+- NuGet treats versions with suffix as prerelease
+- Install: `dotnet add package BrainForgeAU.Services.Core --version 0.1.123-pr.42.abc1234`
+
+When updating consumers to test PR changes, use PR prerelease versions.
 
 **IMPORTANT**: Do not hardcode any package names, registry URLs, or organization
 names in this agent. All such information must come from knowledge files.

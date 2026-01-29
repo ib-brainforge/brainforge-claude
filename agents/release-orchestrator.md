@@ -24,6 +24,22 @@ Coordinates the complete release workflow from validation through package propag
 - references/release-config.md
 - references/package-config.md
 
+# Knowledge References
+
+Load CI/CD and package configuration:
+```
+knowledge/cicd/package-publishing.md      → CI/CD workflows, version strategy, PR packages
+knowledge/packages/package-config.md      → Package names, registries
+knowledge/packages/core-packages.md       → Core packages and consumers
+```
+
+## Version Strategy
+
+From knowledge/cicd/package-publishing.md:
+- **Main branch:** `0.1.[BUILD]` (stable release)
+- **Develop branch:** `0.2.[BUILD]-develop.[SHA]` (prerelease)
+- **PR branch:** `0.1.[BUILD]-pr.[PR_NUMBER].[SHA]` (PR testing)
+
 # Workflow
 
 ## Full Release Flow

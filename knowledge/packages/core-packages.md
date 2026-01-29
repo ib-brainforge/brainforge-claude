@@ -213,7 +213,17 @@ Tracking:
 
 ### Generated API Clients
 
-These packages are auto-generated from backend OpenAPI specifications.
+These packages are auto-generated from backend OpenAPI specifications via CI/CD workflows.
+
+**Generation Process:**
+1. Backend changes trigger `generate-client.yml` workflow on push to `main`/`develop`
+2. Workflow builds API with Swagger configuration to generate OpenAPI spec
+3. OpenAPI Generator CLI (v7.16.0) generates TypeScript client using `typescript-axios` template
+4. Client is published to GitHub Packages NPM registry
+
+**Trigger Paths:** Changes to `openapi/**`, API/Application/Domain/Infrastructure layers
+
+**Version Strategy:** Same as mf-packages (see `knowledge/cicd/package-publishing.md`)
 
 | Package | Source Service | Purpose |
 |---------|----------------|---------|
@@ -223,6 +233,9 @@ These packages are auto-generated from backend OpenAPI specifications.
 | @brainforgeau/learning-backend-client | lms-backend | Learning management API client |
 | @brainforgeau/inventory-backend-client | inventory-backend | Inventory management API client |
 | @brainforgeau/onboard-backend-client | onboard-backend | Onboarding API client |
+| @brainforgeau/notification-backend-client | notification-backend | Notification API client |
+
+**Smart Rebuild:** Workflows compare OpenAPI specs between commits and skip client generation if no API changes detected (unless manually triggered via `workflow_dispatch`).
 
 ---
 
