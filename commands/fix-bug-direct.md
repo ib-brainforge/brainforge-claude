@@ -1,20 +1,29 @@
 ---
-name: /fix-bug
-description: Fix a bug described directly (no Jira required)
+name: /fix-bug-direct
+description: Fix a bug described directly (no Jira required). Use /fix-bugs-jira for Jira tickets.
 allowed_tools: [Read, Task]
 ---
 
 # Purpose
 
-Fix a bug based on your description. No Jira ticket needed.
+Fix a bug based on your direct description. **No Jira ticket required.**
+
+Use this when you have a bug to fix but no Jira ticket associated with it.
 
 **CRITICAL**: Do NOT fix the bug yourself. Spawn the `bug-fix-orchestrator` agent.
+
+## When to Use This vs /fix-bugs-jira
+
+| Scenario | Command |
+|----------|---------|
+| You have a bug description, no Jira ticket | `/fix-bug-direct "..."` ← **This one** |
+| You have a Jira ticket with bugs listed | `/fix-bugs-jira TICKET-ID` |
 
 ## Usage
 
 ```
-/fix-bug "Login fails when password contains special characters"
-/fix-bug "Dashboard shows wrong date format for Australian users"
+/fix-bug-direct "Login fails when password contains special characters"
+/fix-bug-direct "Dashboard shows wrong date format for Australian users"
 ```
 
 ## What To Do
@@ -41,7 +50,7 @@ That's it. The orchestrator handles everything:
 ## Flow Diagram
 
 ```
-/fix-bug "description"
+/fix-bug-direct "description"
        │
        ▼
 ┌──────────────────────┐
@@ -62,4 +71,4 @@ That's it. The orchestrator handles everything:
 
 ## Related Commands
 
-- `/fix-bugs TICKET-ID` - Fix multiple bugs from Jira ticket (uses bug-triage)
+- `/fix-bugs-jira TICKET-ID` - Fix bugs from Jira ticket (uses bug-triage)

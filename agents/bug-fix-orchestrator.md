@@ -3,7 +3,10 @@ name: bug-fix-orchestrator
 description: |
   Orchestrates the complete bug fix workflow for direct bug descriptions.
   Spawns bug-fixer, validators, and commit-manager in sequence.
-  This is the entry point for "/fix-bug" command.
+  This is the entry point for "/fix-bug-direct" command.
+
+  USE THIS FOR: Direct bug descriptions (no Jira ticket).
+  USE bug-triage FOR: Bugs from a Jira ticket.
 tools: [Read, Grep, Glob, Bash, Task, AskUserQuestion]
 model: sonnet
 ---
@@ -17,9 +20,12 @@ Ensures all steps are completed: fix → validate → commit → report.
 ## Knowledge to Load
 
 ```
+Read: knowledge/architecture/bug-fix-workflow.md    → Shared workflow pattern
 Read: knowledge/architecture/system-architecture.md → Service map
 Read: knowledge/architecture/service-boundaries.md  → Service dependencies
 ```
+
+**Note:** This agent shares a common workflow with `bug-triage`. See `bug-fix-workflow.md` for the shared pattern.
 
 ## Telemetry
 Automatic via Claude Code hooks - no manual logging required.

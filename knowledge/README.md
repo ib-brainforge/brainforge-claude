@@ -20,6 +20,8 @@ knowledge/
 │   ├── core-packages.md             # Shared package APIs
 │   ├── package-config.md            # NPM/NuGet settings
 │   └── repo-config.md               # Repo-specific settings
+├── infrastructure/                  # Infrastructure patterns
+│   └── infrastructure-patterns.md   # Kubernetes, GitOps, IaC patterns
 ├── cicd/                            # CI/CD pipelines
 │   └── package-publishing.md        # Package build, version, publish workflows
 └── commit-conventions.md            # Commit message format
@@ -70,17 +72,20 @@ CI/CD pipeline documentation.
 Each agent loads **only the file(s) it needs**:
 
 ```
-backend-pattern-validator  →  validation/backend-patterns.md
-frontend-pattern-validator →  validation/frontend-patterns.md
-plan-validator             →  validation/security-standards.md
-                              architecture/service-boundaries.md
-validation-orchestrator    →  validation/validation-config.md
-master-architect           →  architecture/system-architecture.md
-commit-manager             →  commit-conventions.md
-                              packages/repo-config.md
-package-release            →  cicd/package-publishing.md
-                              packages/package-config.md
-feature-implementor        →  cicd/package-publishing.md (for cross-repo awareness)
+backend-pattern-validator   →  validation/backend-patterns.md
+frontend-pattern-validator  →  validation/frontend-patterns.md
+infrastructure-implementor  →  infrastructure/infrastructure-patterns.md
+infrastructure-validator    →  infrastructure/infrastructure-patterns.md
+                               architecture/tech-stack.md
+plan-validator              →  validation/security-standards.md
+                               architecture/service-boundaries.md
+validation-orchestrator     →  validation/validation-config.md
+master-architect            →  architecture/system-architecture.md
+commit-manager              →  commit-conventions.md
+                               packages/repo-config.md
+package-release             →  cicd/package-publishing.md
+                               packages/package-config.md
+feature-implementor         →  cicd/package-publishing.md (for cross-repo awareness)
 ```
 
 ## Using in a New Project

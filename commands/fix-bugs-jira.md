@@ -1,15 +1,23 @@
 ---
-name: /fix-bugs
-description: Fix bugs from a Jira ticket using the multi-agent system
+name: /fix-bugs-jira
+description: Fix bugs from a Jira ticket. Use /fix-bug-direct for direct bug descriptions.
 allowed_tools: [Read, Task]
 ---
 
 # Purpose
 
-Fix all bugs listed in a Jira ticket. This command MUST delegate to the `bug-triage` agent
-which orchestrates the entire workflow including fetching, parsing, fixing, validating, and committing.
+Fix all bugs listed in a Jira ticket. **Requires a Jira ticket ID.**
+
+Use this when you have a Jira ticket with bugs to fix.
 
 **CRITICAL**: Do NOT attempt to fix bugs yourself. The bug-triage agent handles everything.
+
+## When to Use This vs /fix-bug-direct
+
+| Scenario | Command |
+|----------|---------|
+| You have a Jira ticket with bugs listed | `/fix-bugs-jira TICKET-ID` ← **This one** |
+| You have a bug description, no Jira ticket | `/fix-bug-direct "..."` |
 
 # Arguments
 
@@ -20,9 +28,9 @@ which orchestrates the entire workflow including fetching, parsing, fixing, vali
 # Usage
 
 ```
-/fix-bugs BF-119
-/fix-bugs PROJ-123 --dry-run
-/fix-bugs BF-119 --skip-validation
+/fix-bugs-jira BF-119
+/fix-bugs-jira PROJ-123 --dry-run
+/fix-bugs-jira BF-119 --skip-validation
 ```
 
 # Knowledge References
@@ -46,7 +54,7 @@ Output:
 
 Log:
 ```
-Bash: echo "[$(date -Iseconds)] [main] /fix-bugs invoked for $TICKET_ID" >> .claude/agent-activity.log
+Bash: echo "[$(date -Iseconds)] [main] /fix-bugs-jira invoked for $TICKET_ID" >> .claude/agent-activity.log
 ```
 
 ## 2. Spawn bug-triage Agent
@@ -124,7 +132,7 @@ See .claude/agent-activity.log for full trace.
 
 # Example Session
 
-User: `/fix-bugs BF-119`
+User: `/fix-bugs-jira BF-119`
 
 ```
 [main] Detected Jira bug fix request for BF-119

@@ -1,16 +1,30 @@
 ---
 name: docs-sync-agent
 description: |
-  Documentation synchronization agent.
-  Use for: syncing docs to Confluence, updating architecture docs,
-  keeping documentation repository in sync with code repos.
+  SYNCS EXISTING documentation between code repos and Confluence.
+  Bidirectional: push local docs to Confluence, pull Confluence to local.
+  Use for: updating architecture docs, keeping docs in sync.
+
+  USE THIS FOR: Syncing EXISTING documentation.
+  USE confluence-writer FOR: Creating NEW documentation from scratch.
 tools: [Read, Grep, Glob, Bash]
 model: sonnet
 skills: [docs-sync]
 ---
 
 # Purpose
-Manages documentation synchronization between code repositories and Confluence using the docs-sync skill.
+
+**Syncs EXISTING documentation** between code repositories and Confluence using the docs-sync skill.
+
+## When to Use This vs confluence-writer
+
+| Scenario | Agent to Use |
+|----------|--------------|
+| Sync EXISTING docs between repo and Confluence | `docs-sync-agent` ← **This one** |
+| Pull Confluence changes to local repo | `docs-sync-agent` ← **This one** |
+| Push existing repo docs to Confluence | `docs-sync-agent` ← **This one** |
+| Create NEW documentation about a feature/service | `confluence-writer` |
+| Write technical docs from codebase exploration | `confluence-writer` |
 
 # Variables
 - `$REPOS_ROOT (path)`: Root directory containing repositories

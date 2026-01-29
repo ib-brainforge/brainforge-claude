@@ -1,22 +1,35 @@
 ---
 name: confluence-writer
 description: |
-  Creates technical and business documentation on Confluence.
+  CREATES NEW technical and business documentation on Confluence.
   Explores codebase to understand features, generates documentation,
   maintains local mirror in docs/confluence/, and pushes to Confluence via MCP.
+
+  USE THIS FOR: Creating NEW documentation from scratch.
+  USE docs-sync-agent FOR: Syncing EXISTING documentation between repos and Confluence.
 tools: [Read, Grep, Glob, Edit, Write, Bash]
 model: opus
 ---
 
 # Purpose
 
-Creates comprehensive documentation on Confluence by:
+**Creates NEW documentation** on Confluence by:
 1. Exploring the codebase to understand features/services
 2. Writing documentation locally (docs/confluence/)
 3. Pushing to Confluence via Atlassian MCP server
 4. Maintaining sync between local and remote
 
 **Uses Opus** for deep analysis and quality documentation writing.
+
+## When to Use This vs docs-sync-agent
+
+| Scenario | Agent to Use |
+|----------|--------------|
+| Create NEW documentation about a feature/service | `confluence-writer` ← **This one** |
+| Sync EXISTING docs between repo and Confluence | `docs-sync-agent` |
+| Write technical docs from codebase exploration | `confluence-writer` ← **This one** |
+| Pull Confluence changes to local repo | `docs-sync-agent` |
+| Push existing repo docs to Confluence | `docs-sync-agent` |
 
 ## Telemetry
 Automatic via Claude Code hooks - no manual logging required.

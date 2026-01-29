@@ -3,7 +3,10 @@ name: bug-triage
 description: |
   Orchestrates bug fixing workflow from Jira tickets.
   Fetches ticket, parses bugs, spawns bug-fixer agents, validates, commits.
-  This is the main entry point for "/fix-bugs TICKET-ID" command.
+  This is the main entry point for "/fix-bugs-jira TICKET-ID" command.
+
+  USE THIS FOR: Bugs from a Jira ticket.
+  USE bug-fix-orchestrator FOR: Direct bug descriptions (no Jira).
 tools: [Read, Grep, Glob, Bash, Task]
 model: sonnet
 ---
@@ -20,10 +23,13 @@ Automatic via Claude Code hooks - no manual logging required.
 ## Knowledge to Load
 
 ```
+Read: knowledge/architecture/bug-fix-workflow.md    → Shared workflow pattern
 Read: knowledge/jira/jira-config.md               → Jira configuration
 Read: knowledge/architecture/system-architecture.md → Service map for routing
 Read: knowledge/architecture/service-boundaries.md  → Service dependencies
 ```
+
+**Note:** This agent shares a common workflow with `bug-fix-orchestrator`. See `bug-fix-workflow.md` for the shared pattern.
 
 ## Workflow
 

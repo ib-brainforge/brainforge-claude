@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CLAUDE_HOOK_EVENT=PreToolUse \"$PWD/.claude/hooks/telemetry.sh\"'"
+            "command": "bash -c 'CLAUDE_HOOK_EVENT=PreToolUse \"/Users/ivanbernatovic/Projects/bf-github/.claude/hooks/telemetry.sh\"'"
           }
         ]
       }
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CLAUDE_HOOK_EVENT=PostToolUse \"$PWD/.claude/hooks/telemetry.sh\"'"
+            "command": "bash -c 'CLAUDE_HOOK_EVENT=PostToolUse \"/Users/ivanbernatovic/Projects/bf-github/.claude/hooks/telemetry.sh\"'"
           }
         ]
       }
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CLAUDE_HOOK_EVENT=SubagentStop \"$PWD/.claude/hooks/telemetry.sh\"'"
+            "command": "bash -c 'CLAUDE_HOOK_EVENT=SubagentStop \"/Users/ivanbernatovic/Projects/bf-github/.claude/hooks/telemetry.sh\"'"
           }
         ]
       }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CLAUDE_HOOK_EVENT=Stop \"$PWD/.claude/hooks/telemetry.sh\"'"
+            "command": "bash -c 'CLAUDE_HOOK_EVENT=Stop \"/Users/ivanbernatovic/Projects/bf-github/.claude/hooks/telemetry.sh\"'"
           }
         ]
       }
