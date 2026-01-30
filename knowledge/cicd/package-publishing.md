@@ -202,80 +202,50 @@ If no API changes detected, client generation is skipped (unless `workflow_dispa
 
 ---
 
-## Current Limitations
+## PR-Based Package Versions
 
-### No PR-Based Package Versions
+Pull requests automatically generate and publish package versions, enabling parallel development across repositories.
 
-**Current State:**
-- Packages are only published from `main` and `develop` branches
-- Pull requests only build artifacts (not published to registry)
-- Cannot reference a specific PR's package version
+### How It Works
 
-**Impact on Development:**
-- Cross-repo changes require merging to develop first
-- Cannot test package changes in consuming apps until merged
-- Feature development across repos is sequential, not parallel
+When a PR is created that modifies API-related files, the CI/CD workflow:
+1. Detects API changes by comparing OpenAPI specs
+2. Generates a TypeScript client from the updated spec
+3. Publishes the package with a PR-specific version and tag
+4. Comments on the PR with installation instructions
 
-### Workaround for Cross-Repo Testing
+### Version Format
 
-1. Build package locally
-2. Use `pnpm link` or local file references
-3. Test locally before merging
-4. After merge to develop, update consuming apps
+| Branch/Event | Version Format | NPM Tag | Example |
+|--------------|----------------|---------|---------|
+| main | `[prefix].[build]` | latest | `0.1.42` |
+| develop | `[prefix].[build]-develop.[sha]` | develop | `0.1.42-develop.abc1234` |
+| PR #123 | `[prefix].[build]-pr.[number].[sha]` | pr-123 | `0.1.43-pr.123.def5678` |
 
----
+### Using PR Package Versions
 
-## Proposed Enhancement: PR-Based Package Versions
+After a backend PR triggers client generation, the PR will have a comment with installation instructions:
 
-### Concept
-
-Generate and publish packages from pull requests with PR-specific versions:
-
-```
-[MAJOR].[MINOR].[BUILD_NUMBER]-pr.[PR_NUMBER].[SHORT_SHA]
-Example: 0.2.50-pr.123.abc1234
-```
-
-### Benefits
-
-1. **Parallel development** - Test changes across repos before merging
-2. **Claude agent integration** - Agents can reference PR versions during implementation
-3. **Better CI** - Consuming apps can test against PR versions in their own PRs
-4. **Faster iteration** - No need to merge to develop just to test integration
-
-### Implementation Considerations
-
-1. **Add pull_request trigger for publishing:**
-```yaml
-on:
-  pull_request:
-    branches: [ develop, main ]
-    paths:
-      - 'packages/**'
-```
-
-2. **Modify version generation:**
 ```bash
-if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-  PR_NUMBER="${{ github.event.pull_request.number }}"
-  VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}-pr.${PR_NUMBER}.${SHORT_SHA}"
-fi
+# Install specific PR version
+pnpm add @brainforgeau/identity-management-client@0.1.43-pr.123.def5678
+
+# Or use the PR tag (always gets latest build from that PR)
+pnpm add @brainforgeau/identity-management-client@pr-123
 ```
 
-3. **Publish prerelease packages:**
-```bash
-npm publish --tag pr-${PR_NUMBER}
-```
+### Workflow for Cross-Repo Features
 
-4. **Cleanup old PR packages** - Add workflow to delete packages when PR is closed
+1. Create backend PR with new API endpoints
+2. CI generates and publishes PR-based client package
+3. PR comment shows package version and installation command
+4. Create frontend PR that references the PR-based package version
+5. Both PRs can be reviewed and tested together
+6. Merge backend PR first (publishes to develop tag)
+7. Update frontend PR to use develop version
+8. Merge frontend PR
 
-### NPM Tag Strategy
-
-| Branch/Event | Version Tag | Example |
-|--------------|-------------|---------|
-| main | latest | 0.1.42 |
-| develop | develop | 0.2.42-develop.abc1234 |
-| PR #123 | pr-123 | 0.2.43-pr.123.def5678 |
+This enables parallel development without waiting for merges.
 
 ---
 

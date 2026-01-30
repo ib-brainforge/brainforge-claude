@@ -4,23 +4,56 @@
 # DO NOT record: validation findings, grep matches, routine observations
 
 version: 1
-last_updated: "2025-01-28T00:00:00Z"
-updated_by: "knowledge-updater"
+last_updated: "2026-01-29T10:00:00Z"
+updated_by: "commit-manager"
 
 # Features implemented (significant changes only)
-features: []
-# Example:
-#   - id: "feat-20240127-001"
-#     date: "2024-01-27"
-#     description: "Added lease_end_date to tenancy"
-#     ticket: "FEAT-123"
-#     affected_services:
-#       - name: "asset-backend"
-#         changes: ["Tenancy entity", "TenancyDto", "migration"]
-#       - name: "asset-mf"
-#         changes: ["TenancyForm", "types.ts"]
-#     breaking: false
-#     notes: "Optional nullable DateTime field"
+features:
+  - id: "feat-20260129-001"
+    date: "2026-01-29"
+    description: "Removed jotai dependency from @brainforgeau/security and @brainforgeau/components; replaced with React Context + window-based state management"
+    ticket: "RUNTIME-006"
+    affected_services:
+      - name: "@brainforgeau/security"
+        changes:
+          - "Auth state management refactored from jotai atoms to React Context"
+          - "Introduced window.__BF_AUTH_STATE__ for global auth state"
+          - "Introduced window.__BF_AUTH_ACTIONS__ for auth actions (signIn, signOut, renewToken)"
+          - "Added subscribeToAuthState() for reactive updates outside React components"
+          - "CustomEvent 'bf:auth-state-change' for cross-microfrontend communication"
+          - "useOptionalAuthContext() returns null if no provider (safe for Module Federation boundary)"
+          - "Hooks try context first, fall back to window-based state"
+      - name: "@brainforgeau/components"
+        changes:
+          - "Removed jotai from shared dependencies"
+          - "Auth components now use context + window-based state pattern"
+          - "useOptionalAuthContext() provides safe fallback for MF boundary"
+    breaking: false
+    notes: |
+      Module Federation was causing RUNTIME-006 error because jotai hooks were being called before MF's async boundary was established.
+      New pattern supports both React Context usage (within MF) and window-based fallback (at MF boundaries).
+      All auth logic remains backward compatible from consumer perspective - only internal implementation changed.
+    recorded_at: "2026-01-29T10:00:00Z"
+    recorded_by: "commit-manager"
+
+communications:
+  - id: "comm-20260129-001"
+    date: "2026-01-29"
+    from: "@brainforgeau/security"
+    to: "All consuming microfrontends"
+    type: "event"
+    contract: "CustomEvent: bf:auth-state-change"
+    purpose: "Cross-microfrontend auth state synchronization when hook-based context is unavailable"
+    discovered_in: "RUNTIME-006"
+
+  - id: "comm-20260129-002"
+    date: "2026-01-29"
+    from: "@brainforgeau/security"
+    to: "Global window object"
+    type: "global-state"
+    contract: "window.__BF_AUTH_STATE__, window.__BF_AUTH_ACTIONS__"
+    purpose: "Fallback auth state and actions accessible across microfrontend boundaries when React Context is unavailable"
+    discovered_in: "RUNTIME-006"
 
 # Architectural decisions made during implementations
 decisions:
@@ -76,7 +109,32 @@ decisions:
     recorded_at: "2025-01-28T00:00:00Z"
     recorded_by: "knowledge-updater"
 
+  - id: "adr-20260129-001"
+    date: "2026-01-29"
+    context: |
+      Module Federation requires components to be instantiated at async boundaries where React hooks
+      cannot be safely called. jotai atoms (which rely on hooks) were being invoked before MF's
+      initialization was complete, causing RUNTIME-006 errors.
+    decision: |
+      Replace jotai with dual-mode state management:
+      1. React Context + hooks for normal component usage (optimal)
+      2. Window globals + subscribeToAuthState() for MF boundary crossing (fallback)
+      3. CustomEvent system for reactive updates between MF boundaries
+    alternatives_considered:
+      - "Keep jotai with lazy initialization - too complex, still hook-dependent at boundaries"
+      - "Move all state to Redux - over-engineered for auth, doesn't solve hook timing issue"
+      - "Zustand atoms - same hook issue as jotai, not MF-aware"
+    consequences: |
+      - Simplifies MF integration by eliminating hook dependency at boundaries
+      - Reduces bundle size (jotai removed)
+      - Requires careful state synchronization using CustomEvents for multi-MF scenarios
+      - Window-based state is not tree-shakeable but only used as fallback
+      - Future auth features must respect both modes: context-first, window-fallback
+    ticket: "RUNTIME-006"
+
 stats:
-  total_features: 0
-  total_decisions: 1
-  last_update: "2025-01-28T00:00:00Z"
+  total_features: 1
+  total_communications: 2
+  total_breaking_changes: 0
+  total_decisions: 2
+  last_update: "2026-01-29T10:00:00Z"

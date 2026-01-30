@@ -1,48 +1,45 @@
-# Tech Stack - Learned Knowledge
-# Records: New dependencies added, version upgrades, deprecations
-# Updated by: infrastructure-validator, feature-planner AFTER implementations
-# DO NOT record: existing packages confirmed, routine version checks
+dependency_changes:
+  - id: "dep-20260129-001"
+    date: "2026-01-29"
+    package: "jotai"
+    action: "removed"
+    affected_packages:
+      - "@brainforgeau/security"
+      - "@brainforgeau/components"
+    reason: "Module Federation RUNTIME-006 error - jotai hooks called before MF async boundary established"
+    replacement_pattern: "React Context + window-based state management"
+    ticket: "RUNTIME-006"
+    recorded_at: "2026-01-29T10:00:00Z"
+    recorded_by: "commit-manager"
 
-version: 1
-last_updated: null
-updated_by: null
-
-# New dependencies added (significant only)
-dependencies_added: []
-# Example:
-#   - id: "dep-20240127-001"
-#     date: "2024-01-27"
-#     package: "date-fns"
-#     version: "2.30.0"
-#     added_to: ["asset-mf", "hr-mf"]
-#     purpose: "Date formatting for lease dates"
-#     ticket: "FEAT-123"
-
-# Version upgrades performed
-version_upgrades: []
-# Example:
-#   - id: "upgrade-20240127-001"
-#     date: "2024-01-27"
-#     package: "React"
-#     from_version: "17.0.0"
-#     to_version: "18.2.0"
-#     services: ["asset-mf", "hr-mf", "common-mf"]
-#     breaking_changes: "Concurrent rendering, useId hook"
-#     ticket: "TECH-456"
-
-# Deprecations announced
-deprecations: []
-# Example:
-#   - id: "depr-20240127-001"
-#     date: "2024-01-27"
-#     package: "moment.js"
-#     replacement: "date-fns"
-#     deadline: "2024-06-01"
-#     remaining_usages: ["lms-mf", "hr-mf"]
-#     ticket: "TECH-789"
+state_management_patterns:
+  - id: "pattern-20260129-001"
+    name: "Dual-Mode Auth State Management"
+    date: "2026-01-29"
+    description: "Auth state available via React Context (primary) or window globals (fallback at MF boundaries)"
+    packages:
+      - "@brainforgeau/security"
+    implementation_details:
+      primary_mode:
+        - "useAuthContext() - React Context hook, works within normal component trees"
+        - "AuthProvider component wraps app/MF entry point"
+        - "Optimal performance, tree-shakeable"
+      fallback_mode:
+        - "window.__BF_AUTH_STATE__ - Current auth state object"
+        - "window.__BF_AUTH_ACTIONS__ - Auth action functions (signIn, signOut, renewToken)"
+        - "subscribeToAuthState(callback) - Subscribe to state changes outside React"
+        - "Used when crossing MF boundaries where hooks are unsafe"
+      cross_mf_sync:
+        - "CustomEvent 'bf:auth-state-change' - Broadcast state changes between MFs"
+        - "window.dispatchEvent(new CustomEvent('bf:auth-state-change', {detail: newState}))"
+      safety:
+        - "useOptionalAuthContext() - Returns null if no provider, safe for MF boundaries"
+        - "Hooks check Context first, fall back to window state automatically"
+    ticket: "RUNTIME-006"
+    recorded_at: "2026-01-29T10:00:00Z"
+    recorded_by: "commit-manager"
 
 stats:
-  total_dependencies_added: 0
-  total_version_upgrades: 0
-  total_deprecations: 0
-  last_update: null
+  total_dependency_changes: 1
+  total_pattern_additions: 1
+  last_update: "2026-01-29T10:00:00Z"
