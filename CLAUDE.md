@@ -462,71 +462,33 @@ All agents load patterns from `knowledge/`:
 
 ## ⚠️ Documentation & Tracking Files - CRITICAL RULES
 
-**NO markdown tracking files in source repositories.**
+**Never create markdown tracking files in repository roots or source folders.** Files like PHASE_COMPLETE.md, IMPLEMENTATION_STATUS.md, TODO.md, or PROGRESS.md must not be placed in the repo root.
 
-| ❌ WRONG | ✅ CORRECT |
-|----------|-----------|
-| `PHASE_7_COMPLETE.md` in repo root | `docs/multi-realm/PHASE_7_COMPLETE.md` |
-| `IMPLEMENTATION_STATUS.md` anywhere | `docs/{feature-name}/STATUS.md` |
-| `TODO.md`, `PROGRESS.md` in repo | `docs/{feature-name}/` subfolder |
+All feature tracking and progress documentation must go in a `docs/{feature-name}/` subfolder. Use kebab-case for the feature name (for example, `docs/multi-realm/` or `docs/user-auth/`).
 
-**Rules:**
-1. **Never create `.md` tracking files in repository roots or source folders**
-2. **All feature tracking/progress docs go in `docs/{feature-name}/` folder**
-3. **Feature name should be kebab-case** (e.g., `multi-realm`, `user-auth`)
-4. **Only exception**: `README.md` at repo root is allowed
+The only exception is README.md at the repository root, which is allowed.
 
 ## ⚠️ Frontend Implementation - WAIT FOR GENERATED CLIENTS
 
-**CRITICAL: Never use fetch() or raw axios for API calls. Always use generated clients.**
+**Never use fetch() or raw axios for API calls. Always use the generated TypeScript clients from @brainforgeau backend-client packages.**
 
 ### Required Workflow for Cross-Repo Features
 
-```
-1. Backend PR created with new API endpoints
-   └── CI/CD generates @brainforgeau/*-backend-client package
-   └── PR comment shows package version: @brainforgeau/identity-management-client@0.1.X-pr.123.abc1234
+When implementing a feature that requires new backend API endpoints, follow this workflow:
 
-2. WAIT for backend PR to generate client package
-   └── Check PR comments for package version
-   └── Or check GitHub Packages for pr-XXX tag
+1. Create the backend PR with the new API endpoints. The CI/CD pipeline will automatically generate a TypeScript client package from the OpenAPI specification.
 
-3. Frontend PR references the generated package
-   └── pnpm add @brainforgeau/identity-management-client@pr-123
-   └── Import and use generated API classes
+2. Wait for the backend PR to generate the client package. Check the PR comments for the package version (the bot posts installation instructions), or check GitHub Packages for the pr-XXX tag.
 
-4. Use generated client factories
-   └── createIdentityManagementApiClient(RealmsApi)
-   └── Client automatically uses authorizedAxios with proper headers
-```
+3. Create the frontend PR and reference the PR-generated package version. Install it using pnpm with the specific version or PR tag.
 
-### What NOT To Do
+4. Import and use the generated API classes with the client factory functions. The generated client automatically uses authorizedAxios with proper authentication headers.
 
-```typescript
-// ❌ WRONG - Direct fetch
-const response = await fetch('/api/v1/realms/provision', {
-  method: 'POST',
-  body: JSON.stringify(data)
-});
+### Prohibited Patterns
 
-// ❌ WRONG - Custom axios instance
-const api = axios.create({ baseURL: '/api/v1' });
-await api.post('/realms/provision', data);
+Do not use direct fetch() calls to backend API endpoints. Do not create custom axios instances for API calls. Do not write temporary or local API classes that duplicate backend endpoints.
 
-// ❌ WRONG - Temporary API class
-class RealmsApi {
-  async provision(data: any) { ... }  // REVIEW: Replace with generated client
-}
-
-// ✅ CORRECT - Use generated client
-import { RealmsApi } from '@brainforgeau/identity-management-client';
-import { createIdentityManagementApiClient } from '@brainforgeau/identity-management-client';
-
-const realmsApi = createIdentityManagementApiClient(RealmsApi);
-await realmsApi.provisionRealm({ tenantId, realmName });
-```
-
-**Blocking Rule**: PRs with fetch() or axios calls to backend APIs will be rejected. Must use generated clients.
+All API calls must go through the generated clients, which provide type safety matching the actual backend contract. PRs with fetch() or raw axios calls to backend APIs will be rejected.
 
 ## Single Writer Pattern
 
