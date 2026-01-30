@@ -546,12 +546,14 @@ navbar-mf exposes: root export (.) and ./Navbar
 
 | Anti-Pattern | Severity | Suggestion |
 |--------------|----------|------------|
+| Direct fetch() calls to API endpoints | error | Use generated clients from @brainforgeau/*-backend-client packages |
 | Direct fetch to external URLs | error | Use authorizedAxios from @brainforgeau/security |
-| Raw axios import without security package | error | Use authorizedAxios |
+| Raw axios import without security package | error | Use authorizedAxios via generated clients |
 | Hardcoded API URLs in code | warning | Use environment variables |
 | Temporary/local API client classes | error | Must use generated clients from @brainforgeau/*-backend-client packages |
 | Custom API classes duplicating backend endpoints | error | Wait for backend PR merge, client regeneration, then use generated client |
 | REVIEW/TODO comments for temporary API implementations | error | Blocker - must resolve before merge |
+| Creating new axios instances | error | Use factory functions from generated clients (e.g., createIdentityManagementApiClient) |
 
 ### Generated API Client Workflow (CRITICAL)
 

@@ -460,6 +460,74 @@ All agents load patterns from `knowledge/`:
 - `knowledge/jira/` - Jira config
 - `knowledge/infrastructure/` - Infrastructure patterns (Kubernetes, GitOps, IaC)
 
+## ⚠️ Documentation & Tracking Files - CRITICAL RULES
+
+**NO markdown tracking files in source repositories.**
+
+| ❌ WRONG | ✅ CORRECT |
+|----------|-----------|
+| `PHASE_7_COMPLETE.md` in repo root | `docs/multi-realm/PHASE_7_COMPLETE.md` |
+| `IMPLEMENTATION_STATUS.md` anywhere | `docs/{feature-name}/STATUS.md` |
+| `TODO.md`, `PROGRESS.md` in repo | `docs/{feature-name}/` subfolder |
+
+**Rules:**
+1. **Never create `.md` tracking files in repository roots or source folders**
+2. **All feature tracking/progress docs go in `docs/{feature-name}/` folder**
+3. **Feature name should be kebab-case** (e.g., `multi-realm`, `user-auth`)
+4. **Only exception**: `README.md` at repo root is allowed
+
+## ⚠️ Frontend Implementation - WAIT FOR GENERATED CLIENTS
+
+**CRITICAL: Never use fetch() or raw axios for API calls. Always use generated clients.**
+
+### Required Workflow for Cross-Repo Features
+
+```
+1. Backend PR created with new API endpoints
+   └── CI/CD generates @brainforgeau/*-backend-client package
+   └── PR comment shows package version: @brainforgeau/identity-management-client@0.1.X-pr.123.abc1234
+
+2. WAIT for backend PR to generate client package
+   └── Check PR comments for package version
+   └── Or check GitHub Packages for pr-XXX tag
+
+3. Frontend PR references the generated package
+   └── pnpm add @brainforgeau/identity-management-client@pr-123
+   └── Import and use generated API classes
+
+4. Use generated client factories
+   └── createIdentityManagementApiClient(RealmsApi)
+   └── Client automatically uses authorizedAxios with proper headers
+```
+
+### What NOT To Do
+
+```typescript
+// ❌ WRONG - Direct fetch
+const response = await fetch('/api/v1/realms/provision', {
+  method: 'POST',
+  body: JSON.stringify(data)
+});
+
+// ❌ WRONG - Custom axios instance
+const api = axios.create({ baseURL: '/api/v1' });
+await api.post('/realms/provision', data);
+
+// ❌ WRONG - Temporary API class
+class RealmsApi {
+  async provision(data: any) { ... }  // REVIEW: Replace with generated client
+}
+
+// ✅ CORRECT - Use generated client
+import { RealmsApi } from '@brainforgeau/identity-management-client';
+import { createIdentityManagementApiClient } from '@brainforgeau/identity-management-client';
+
+const realmsApi = createIdentityManagementApiClient(RealmsApi);
+await realmsApi.provisionRealm({ tenantId, realmName });
+```
+
+**Blocking Rule**: PRs with fetch() or axios calls to backend APIs will be rejected. Must use generated clients.
+
 ## Single Writer Pattern
 
 **ONLY `commit-manager` writes to learned YAML files.**
