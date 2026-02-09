@@ -20,8 +20,8 @@ BrainForge (NetCorp360) is a multi-tenant SaaS platform built on a **Netcorp Bac
 | Layer | Components |
 |-------|------------|
 | Ingress (HTTPS) | app.brainforge.com.au, auth.brainforge.com.au |
-| Frontend | App Shell, HR MF, Asset MF, Identity MF, Inventory MF, DriveCom MF, LMS MF |
-| Backend | HR API, Asset API, Inventory API, Identity API, Notification API, LMS API, Onboard API |
+| Frontend | App Shell, HR MF, Asset MF, Identity MF, Inventory MF, DriveCom MF, LMS MF, Tracking MF |
+| Backend | HR API, Asset API, Inventory API, Identity API, Notification API, LMS API, Onboard API, Tracking API |
 | Public API | API Gateway (API Key Authentication) |
 | Infrastructure | Keycloak, PostgreSQL, Redis, RabbitMQ |
 
@@ -40,6 +40,9 @@ The following repositories exist in the bf-github workspace:
 - hr-backend / hr-mf - HR management (employees, scheduling, timesheets, payroll)
 - inventory-backend / inventory-mf - Inventory tracking and management
 - lms-backend / lms-mf - Learning management system
+- tracking-backend / tracking-mf - GPS tracking, fleet management, geofencing, driver fatigue
+- tracking-ingestion - TCP listener for GPS device protocols (StatefulSet)
+- tracking-persistence-worker - Redis-to-PostgreSQL position writer
 - onboard-backend / onboard-mf - Employee onboarding workflows
 - onboard-app - Standalone onboarding application
 - drivecom-mf - Driver communication microfrontend
@@ -83,6 +86,9 @@ The following repositories exist in the bf-github workspace:
 | inventory-backend | backend | Products, stock, warehouse management |
 | lms-backend | backend | Learning management, training modules |
 | onboard-backend | backend | Employee onboarding workflows |
+| tracking-backend | backend | GPS tracking, fleet management, geofences, alerts, speed rules, driver fatigue |
+| tracking-ingestion | backend | TCP listener for GPS device protocols, writes raw positions to Redis |
+| tracking-persistence-worker | backend | Consumes GPS positions from Redis, writes to PostgreSQL |
 | notification-backend | backend | Email, SMS, push notifications, SignalR real-time updates |
 
 ### Shared Packages (dotnet-core)
@@ -122,12 +128,13 @@ Unique identifiers configured in each service's appsettings.json. The canonical 
 
 | Service | Service ID | Service Name |
 |---------|-----------|--------------|
-| identity-management | 00000000-0000-0000-0000-000000000001 | IdentityManagement |
-| hr-backend | 00000000-0000-0000-0000-000000000002 | HumanResources |
-| lms-backend | 00000000-0000-0000-0000-000000000003 | LearningManagement |
-| inventory-backend | 00000000-0000-0000-0000-000000000004 | InventoryManagement |
-| onboard-backend | 00000000-0000-0000-0000-000000000005 | OnboardManagement |
-| asset-backend | 00000000-0000-0000-0000-000000000010 | AssetManagement |
+| asset-backend | 00000000-0000-0000-0000-000000000001 | AssetManagement |
+| tracking-backend | 00000000-0000-0000-0000-000000000002 | Tracking |
+| identity-management | (see identity config) | IdentityManagement |
+| hr-backend | (see hr config) | HumanResources |
+| lms-backend | (see lms config) | LearningManagement |
+| inventory-backend | (see inventory config) | InventoryManagement |
+| onboard-backend | (see onboard config) | OnboardManagement |
 
 > **Important:** Coordinate with the team before assigning a new Service ID to avoid conflicts. The canonical registry is in docs/confluence/netcorp-backbone-architecture.md.
 
@@ -252,13 +259,16 @@ Users can belong to multiple tenants with different roles in each.
 - /asset - Asset management microfrontend
 - /identity - Identity management microfrontend
 - /inventory - Inventory microfrontend
+- /tracking - GPS tracking microfrontend
 - /drivecom - DriveCOM microfrontend
 - /onboard - Onboarding application
 - /backend - HR API
 - /backend/asset - Asset API
+- /backend/tracking - Tracking API
 - /backend/inventory - Inventory API
 - /backend/notification - Notification API
 - /hubs/notifications - SignalR WebSocket
+- /hubs/tracking - Tracking SignalR WebSocket
 - /public - Public API (API key authentication)
 - /mfs/packages/navbar - Shared navigation
 
