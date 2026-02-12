@@ -2,427 +2,361 @@
 
 <!--
 This file is referenced by: infrastructure-implementor, infrastructure-validator, feature-planner
-Last verified: January 2025
-
-NOTE: This file contains GENERIC patterns. Project-specific details (repo paths,
-service names, environment names) should be added for your project.
+Last verified: February 2026
 -->
 
 ## Overview
 
 Infrastructure follows GitOps principles with Flux CD managing deployments to Kubernetes.
-All changes go through Git - no direct `kubectl apply` in production.
+All changes go through Git — no direct `kubectl apply`. The cluster watches the `security-upgrade-2` branch.
 
 ## Repository Structure
 
 ```
-infrastructure/
-├── base/                           # Base Kubernetes manifests
-│   ├── [service-name]/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── configmap.yaml
-│   │   └── kustomization.yaml
+infra/
+├── clusters/                          # Per-environment Flux configuration
+│   ├── local-kube/
+│   │   ├── infrastructure.yaml        # ALL Flux Kustomizations with dependency graph
+│   │   ├── secrets/                   # SOPS-encrypted secrets
+│   │   ├── cert-manager-config/       # Environment-specific cert config
+│   │   └── cluster-config.yaml        # ConfigMap with env vars (NFS_SERVER, etc.)
+│   ├── staging/
+│   │   └── infrastructure.yaml
+│   └── production/
+│       └── infrastructure.yaml
+├── namespaces/                        # One directory per component/namespace
+│   ├── cilium/
+│   │   ├── kustomization.yaml         # Kustomize kustomization (lists resources)
+│   │   ├── helm-release.yaml          # Flux HelmRelease
+│   │   ├── helm-repository.yaml       # Flux HelmRepository
+│   │   ├── namespace.yaml
+│   │   └── cilium-network-policies/   # CiliumNetworkPolicy resources
+│   ├── linkerd/
+│   │   ├── helm-release-cni.yaml
+│   │   ├── helm-release-control-plane.yaml
+│   │   ├── helm-release-crds.yaml
+│   │   ├── certificates.yaml
+│   │   └── network-policy-allow-control-plane.yaml
+│   ├── monitoring/                    # kube-prometheus-stack
+│   ├── cilium-monitoring/             # PrometheusRules/ServiceMonitors for cilium
+│   ├── kyverno-monitoring/            # PrometheusRules/ServiceMonitors for kyverno
+│   ├── gatekeeper-monitoring/         # ServiceMonitors for gatekeeper
+│   ├── trivy-monitoring/              # PrometheusRules/ServiceMonitors for trivy
+│   ├── backup-monitoring/             # PrometheusRules for backup
+│   ├── netcorp-monitoring/            # ServiceMonitors for netcorp services
+│   ├── netcorp/                       # Application workloads
+│   ├── postgre/                       # CloudNativePG cluster
+│   ├── redis/                         # Redis via Bitnami Helm
+│   ├── rabbitmq/                      # RabbitMQ via operator
+│   ├── mongodb/                       # MongoDB
 │   └── ...
-├── overlays/                       # Environment-specific overrides
-│   ├── development/
-│   │   ├── [service-name]/
-│   │   │   ├── kustomization.yaml
-│   │   │   └── patch-*.yaml
-│   │   └── kustomization.yaml
-│   ├── staging/
-│   │   └── ...
-│   └── production/
-│       └── ...
-├── clusters/                       # Flux GitOps configuration
-│   ├── development/
-│   │   ├── flux-system/
-│   │   └── apps.yaml              # Kustomization pointing to overlays
-│   ├── staging/
-│   │   └── ...
-│   └── production/
-│       └── ...
-├── charts/                         # Helm charts (if used)
-│   └── [chart-name]/
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-└── terraform/                      # IaC for cloud resources (if used)
-    ├── modules/
-    └── environments/
 ```
 
-## Kustomize Patterns
+### Key Difference from Generic Patterns
 
-### Base Resource Template
+This repo does NOT use `base/overlays/` structure. Each component lives in `namespaces/[component]/`
+with a flat layout. Environment-specific overrides are done via Flux Kustomization `patches` in
+`clusters/[env]/infrastructure.yaml`, NOT via Kustomize overlays.
 
-```yaml
-# base/[service]/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: service-name
-  labels:
-    app: service-name
-    version: v1
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: service-name
-  template:
-    metadata:
-      labels:
-        app: service-name
-        version: v1
-    spec:
-      containers:
-        - name: service-name
-          image: registry/service-name:latest
-          ports:
-            - containerPort: 8080
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "200m"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 5
-```
+## Cluster Details
 
-### Base Kustomization
+| Setting | Value |
+|---------|-------|
+| Control plane | 192.168.50.100 |
+| Workers | .101, .102, .103 |
+| Pod CIDR | 10.244.0.0/16 |
+| Service CIDR | 10.96.0.0/12 |
+| CNI | Cilium 1.16.5 with WireGuard |
+| Service Mesh | Linkerd with linkerd-cni |
+| GitOps | Flux CD on branch `security-upgrade-2` |
+| SSH | kube@192.168.50.100 (password: kubernetes) |
+
+**IMPORTANT**: SSH is READ-ONLY for validation. Never make changes via SSH. All changes go through the Git repo.
+
+## Flux Kustomization Patterns
+
+### The Infrastructure File
+
+ALL Flux Kustomization resources live in a single file: `clusters/[env]/infrastructure.yaml`.
+This file defines the complete dependency graph for bootstrap ordering.
 
 ```yaml
-# base/[service]/kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-resources:
-  - deployment.yaml
-  - service.yaml
-  - configmap.yaml
-
-commonLabels:
-  app.kubernetes.io/name: service-name
-  app.kubernetes.io/part-of: platform
-```
-
-### Overlay Kustomization
-
-```yaml
-# overlays/production/[service]/kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: production
-
-resources:
-  - ../../../base/[service]
-
-patches:
-  - path: patch-deployment.yaml
-
-configMapGenerator:
-  - name: service-config
-    behavior: merge
-    literals:
-      - ENVIRONMENT=production
-```
-
-### Overlay Patch
-
-```yaml
-# overlays/production/[service]/patch-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: service-name
-spec:
-  replicas: 3
-  template:
-    spec:
-      containers:
-        - name: service-name
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "250m"
-            limits:
-              memory: "1Gi"
-              cpu: "500m"
-```
-
-## Flux CD Patterns
-
-### Kustomization Resource
-
-```yaml
-# clusters/production/apps/service-name.yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: service-name
+  name: component-name
   namespace: flux-system
 spec:
-  interval: 10m
-  path: ./overlays/production/service-name
-  prune: true
+  dependsOn:
+    - name: dependency-1        # Must be Ready before this starts
+    - name: dependency-2
+  interval: 5m
+  path: ./namespaces/component-name
+  prune: false                  # We use false to avoid accidental deletion
   sourceRef:
     kind: GitRepository
-    name: infrastructure
-  healthChecks:
-    - apiVersion: apps/v1
-      kind: Deployment
-      name: service-name
-      namespace: production
+    name: flux-system
+  wait: true                    # Wait for health checks to pass
+  timeout: 10m
 ```
 
-### HelmRelease Resource
+### Bootstrap Dependency Rules
+
+**CRD dependencies MUST be explicit.** If a kustomization creates CRD instances, it MUST
+depend on the kustomization that installs the CRD.
+
+| CRD | Provided By | Consumers Must Depend On |
+|-----|-------------|--------------------------|
+| CiliumNetworkPolicy | `cilium` | Any kustomization with CiliumNetworkPolicy resources |
+| PrometheusRule, ServiceMonitor | `monitoring` | Split into separate `*-monitoring` kustomizations |
+| RecurringJob (longhorn.io) | `longhorn-system` | redis, mongodb, rabbitmq (and any using Longhorn backups) |
+| Certificate, ClusterIssuer | `cert-manager` | cert-manager-config, linkerd |
+| ConstraintTemplate | `gatekeeper-system` | gatekeeper-constraint-templates |
+| ClusterPolicy (Kyverno) | `kyverno` | kyverno-config |
+
+**Webhook ordering:** Gatekeeper and Kyverno register admission webhooks. During bootstrap,
+if their webhook is registered before their pods are ready, ALL API server operations fail.
+Kustomizations that create namespaces or resources subject to these webhooks should NOT
+depend on them directly — let the webhooks come up in parallel and Flux will retry.
+
+### Monitoring Resource Split Pattern
+
+PrometheusRule and ServiceMonitor resources MUST NOT be in the same kustomization as the
+service they monitor. They must be in a separate `*-monitoring` kustomization that depends
+on BOTH `monitoring` (for CRDs) AND the parent service (for the namespace/endpoints).
 
 ```yaml
-# clusters/production/apps/service-name.yaml
+# In clusters/[env]/infrastructure.yaml
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cilium-monitoring
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: monitoring          # Provides PrometheusRule/ServiceMonitor CRDs
+    - name: cilium              # Provides the namespace and endpoints
+  interval: 5m
+  path: ./namespaces/cilium-monitoring
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: false                   # Monitoring add-ons don't block anything
+  timeout: 5m
+```
+
+Similarly, helm-generated ServiceMonitors must be DISABLED (`serviceMonitor.enabled: false`)
+in the HelmRelease values, and manually defined in the `-monitoring` kustomization instead.
+
+## HelmRelease Patterns
+
+### Standard HelmRelease
+
+```yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: service-name
-  namespace: flux-system
+  name: component-name
+  namespace: target-namespace    # Where the release is installed
 spec:
-  interval: 10m
+  interval: 1h
   chart:
     spec:
-      chart: ./charts/service-name
+      chart: chart-name
+      version: "1.x"            # Use semver constraints
       sourceRef:
-        kind: GitRepository
-        name: infrastructure
+        kind: HelmRepository
+        name: repo-name
+        namespace: flux-system
+  timeout: 10m                  # Increase for slow installs (default 5m)
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   values:
-    replicaCount: 3
-    image:
-      repository: registry/service-name
-      tag: v1.0.0
+    # Chart-specific values
+```
+
+### Anti-Patterns for HelmReleases
+
+| Anti-Pattern | Why It's Wrong |
+|--------------|----------------|
+| `upgrade.force: true` | Deletes and recreates ALL resources on upgrade |
+| `cleanupOnFail: true` | Can delete data on transient failures |
+| `strategy: uninstall` | Nuclear option — uninstalls everything |
+| `remediateLastFailure: true` on install | Can loop uninstall/install forever |
+| Dummy annotations to trigger restarts | Workaround for broken config — fix the root cause |
+
+If a HelmRelease gets stuck, the fix is proper dependency ordering or a cluster recreate,
+NOT adding remediation hacks.
+
+## Cilium + CiliumNetworkPolicy Patterns
+
+### Critical Rules
+
+- Standard K8s NetworkPolicy `ipBlock` rules do NOT work with Cilium's datapath for ClusterIP service DNAT
+- Must use `CiliumNetworkPolicy` with `toEntities: kube-apiserver` for egress to API server
+- For webhook ingress from API server, use `fromEntities: [kube-apiserver, host]`
+- `endpointSelector: {}` selects ALL pods in namespace — must add DNS + intra-namespace rules
+- `cni.exclusive: false` in Cilium HelmRelease required for linkerd-cni chaining
+
+### Standard CiliumNetworkPolicy for Webhook Components
+
+```yaml
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-k8s-api
+  namespace: component-namespace
+spec:
+  endpointSelector: {}
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - {}
+  ingress:
+    - fromEntities:
+        - kube-apiserver
+        - host
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "8443"
+              protocol: TCP
+```
+
+### Linkerd CNI + Cilium
+
+Linkerd-cni must chain into Cilium's CNI conflist. Race condition on bootstrap:
+- If both start simultaneously, Cilium overwrites the conflist
+- **Fix**: `linkerd` Flux Kustomization MUST depend on `cilium`
+- `priorityClassName: system-node-critical` on linkerd-cni DaemonSet
+
+## Kustomize Patterns (in-repo)
+
+### Component kustomization.yaml
+
+```yaml
+# namespaces/[component]/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - helm-repository.yaml
+  - helm-release.yaml
+  # CiliumNetworkPolicies in subdirectory
+  # PrometheusRules/ServiceMonitors in separate *-monitoring kustomization
+```
+
+### Namespace with PSS Labels
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: component-name
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
 ```
 
 ## Secret Management (SOPS)
 
-### Encrypted Secret Template
+Secrets are encrypted with SOPS using Age keys and stored in `clusters/[env]/secrets/`.
 
 ```yaml
-# overlays/production/[service]/secret.yaml
+# clusters/local-kube/secrets/secret-name.yaml (encrypted)
 apiVersion: v1
 kind: Secret
 metadata:
-  name: service-secrets
+  name: secret-name
+  namespace: target-namespace
 type: Opaque
 stringData:
-  DATABASE_URL: ENC[AES256_GCM,data:...,tag:...,type:str]
-  API_KEY: ENC[AES256_GCM,data:...,tag:...,type:str]
+  key: ENC[AES256_GCM,data:...,tag:...,type:str]
 ```
 
-### SOPS Configuration
-
+Flux decrypts at reconciliation time via the `sops-age` secret:
 ```yaml
-# .sops.yaml (at repo root)
-creation_rules:
-  - path_regex: overlays/production/.*\.yaml$
-    age: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  - path_regex: overlays/staging/.*\.yaml$
-    age: age1yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+spec:
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
 ```
 
-### Creating Encrypted Secrets
+## Flux Operations
 
+### Trigger Reconciliation
 ```bash
-# Encrypt a secret file
-sops -e -i overlays/production/service/secret.yaml
-
-# Decrypt for editing
-sops overlays/production/service/secret.yaml
+kubectl annotate gitrepository flux-system -n flux-system \
+  reconcile.fluxcd.io/requestedAt=$(date +%s) --overwrite
 ```
 
-## Common Resource Patterns
+### Suspend/Unsuspend HelmRelease (reset retry counters)
+Don't do this via SSH — change `spec.suspend: true/false` in the repo.
 
-### Service
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: service-name
-spec:
-  selector:
-    app: service-name
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-  type: ClusterIP
-```
-
-### ConfigMap
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: service-config
-data:
-  ENVIRONMENT: production
-  LOG_LEVEL: info
-  FEATURE_FLAGS: '{"newFeature": true}'
-```
-
-### Ingress (via Gateway API)
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-route
-spec:
-  parentRefs:
-    - name: main-gateway
-  hostnames:
-    - "api.example.com"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api/service
-      backendRefs:
-        - name: service-name
-          port: 80
-```
-
-### Network Policy
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: service-network-policy
-spec:
-  podSelector:
-    matchLabels:
-      app: service-name
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app: api-gateway
-      ports:
-        - port: 8080
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app: database
-      ports:
-        - port: 5432
-```
-
-## Validation Commands
-
+### Check Status
 ```bash
-# Validate YAML syntax
+kubectl get kustomizations -n flux-system
+kubectl get helmrelease -A
+```
+
+## Validation
+
+### YAML Syntax (local)
+```bash
 kubectl apply --dry-run=client -f file.yaml
-
-# Build Kustomize overlay
-kustomize build overlays/production/service-name
-
-# Validate Helm chart
-helm lint charts/service-name
-helm template charts/service-name --values values.yaml
-
-# Check Flux reconciliation
-flux reconcile kustomization service-name
-
-# Validate Terraform
-cd terraform/environments/production && terraform validate
 ```
 
-## Anti-Patterns (AVOID)
-
-| Anti-Pattern | Correct Approach |
-|--------------|------------------|
-| Hardcoded secrets in manifests | Use SOPS-encrypted secrets |
-| No resource limits | Always set requests and limits |
-| `latest` image tag in production | Use specific version tags |
-| Direct kubectl apply | Commit to Git, let Flux reconcile |
-| Skipping health probes | Always configure liveness/readiness |
-| Single replica in production | Use at least 2 replicas for HA |
-| No network policies | Define explicit ingress/egress rules |
-
-## Labels Standard
-
-All resources MUST have these labels:
-
-```yaml
-labels:
-  app.kubernetes.io/name: service-name
-  app.kubernetes.io/instance: service-name-production
-  app.kubernetes.io/version: "1.0.0"
-  app.kubernetes.io/component: backend  # or frontend, database, etc.
-  app.kubernetes.io/part-of: platform-name
-  app.kubernetes.io/managed-by: flux
+### Kustomize Build (local)
+```bash
+kustomize build namespaces/[component]/
 ```
 
-## Environment-Specific Defaults
-
-| Setting | Development | Staging | Production |
-|---------|-------------|---------|------------|
-| Replicas | 1 | 2 | 3+ |
-| Memory Request | 128Mi | 256Mi | 512Mi |
-| Memory Limit | 256Mi | 512Mi | 1Gi |
-| CPU Request | 50m | 100m | 250m |
-| CPU Limit | 100m | 200m | 500m |
-| Log Level | debug | info | info |
-
----
-
-## Project-Specific Configuration
-
-<!--
-Add your project-specific details below:
-- Infrastructure repository path
-- Environment names
-- Service naming conventions
-- Registry URLs
-- SOPS age keys
--->
-
-### Repository Paths
-
-```
-$INFRA_REPO = [TODO: Add path to infrastructure repository]
-$REGISTRY = [TODO: Add container registry URL]
+### Cluster Status (via SSH, read-only)
+```bash
+sshpass -p 'kubernetes' ssh -o StrictHostKeyChecking=no kube@192.168.50.100 \
+  'kubectl get kustomizations -n flux-system'
 ```
 
-### Environments
+## Current Bootstrap Layer Order
 
 ```
-development → overlays/development/
-staging     → overlays/staging/
-production  → overlays/production/
-```
-
-### Service Naming
-
-```
-[service-name]-backend  → Backend services
-[service-name]-mf       → Microfrontend applications
-[service-name]-worker   → Background workers
+Layer 0: cluster-secrets
+Layer 1 (parallel): nfs-provisioner, cert-manager, reloader, cilium,
+                     gateway-api-crds, kyverno, trivy-system
+Layer 1.5: gatekeeper-system(->cilium), longhorn-system(->secrets,cilium),
+           velero(->secrets,cilium), database-operators(->nfs),
+           kyverno-config(->kyverno), cilium-config(->cilium),
+           envoy-gateway(->gateway-api-crds), cert-manager-config(->cert-manager),
+           linkerd(->cert-manager,cilium), gatekeeper-constraint-templates(->gatekeeper)
+Layer 2:  gatekeeper-config, local-cert-manager-config, envoy-gateway-config,
+          linkerd-config, linkerd-viz, monitoring(->nfs,secrets),
+          backup(->secrets,nfs), backup-jobs(->nfs,secrets)
+Layer 3:  postgre, redis, rabbitmq, mongodb, strapi-postgres
+Layer 4:  netcorp-app (->all data services)
+Layer 4.5: *-monitoring kustomizations (->monitoring + parent)
 ```
